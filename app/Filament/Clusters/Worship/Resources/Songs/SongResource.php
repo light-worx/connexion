@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Filament\Clusters\Worship\Resources\Songs;
+
+use BackedEnum;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+use App\Filament\Clusters\Worship\Resources\Songs\Pages\CreateSong;
+use App\Filament\Clusters\Worship\Resources\Songs\Pages\EditSong;
+use App\Filament\Clusters\Worship\Resources\Songs\Pages\ListSongs;
+use App\Filament\Clusters\Worship\Resources\Songs\Schemas\SongForm;
+use App\Filament\Clusters\Worship\Resources\Songs\Tables\SongsTable;
+use App\Filament\Clusters\Worship\WorshipCluster;
+use App\Models\Song;
+
+class SongResource extends Resource
+{
+    protected static ?string $model = Song::class;
+
+    protected static ?int $navigationSort = 2;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSpeakerWave;
+
+    protected static ?string $cluster = WorshipCluster::class;
+
+    protected static ?string $recordTitleAttribute = 'title';
+
+    public static function form(Schema $schema): Schema
+    {
+        return SongForm::configure($schema);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return SongsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListSongs::route('/'),
+            'create' => CreateSong::route('/create'),
+            'edit' => EditSong::route('/{record}/edit'),
+        ];
+    }
+}
