@@ -27,6 +27,11 @@ class IndividualResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'fullname';
 
+    public static function canAccess(): bool
+    {
+        return setting('people_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return IndividualForm::configure($schema);

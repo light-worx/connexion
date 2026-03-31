@@ -37,6 +37,11 @@ class ChordPolicy
         return $authUser->can('Delete:Chord');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Chord');
+    }
+
     public function restore(AuthUser $authUser, Chord $chord): bool
     {
         return $authUser->can('Restore:Chord');

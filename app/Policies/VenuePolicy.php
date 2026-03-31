@@ -37,6 +37,11 @@ class VenuePolicy
         return $authUser->can('Delete:Venue');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Venue');
+    }
+
     public function restore(AuthUser $authUser, Venue $venue): bool
     {
         return $authUser->can('Restore:Venue');

@@ -37,6 +37,11 @@ class GroupPolicy
         return $authUser->can('Delete:Group');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Group');
+    }
+
     public function restore(AuthUser $authUser, Group $group): bool
     {
         return $authUser->can('Restore:Group');

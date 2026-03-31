@@ -25,6 +25,11 @@ class TenantResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'tenant';
 
+    public static function canAccess(): bool
+    {
+        return setting('property_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return TenantForm::configure($schema);

@@ -37,6 +37,11 @@ class IndividualPolicy
         return $authUser->can('Delete:Individual');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Individual');
+    }
+
     public function restore(AuthUser $authUser, Individual $individual): bool
     {
         return $authUser->can('Restore:Individual');

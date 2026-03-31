@@ -37,6 +37,11 @@ class SongPolicy
         return $authUser->can('Delete:Song');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Song');
+    }
+
     public function restore(AuthUser $authUser, Song $song): bool
     {
         return $authUser->can('Restore:Song');

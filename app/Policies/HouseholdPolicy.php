@@ -37,6 +37,11 @@ class HouseholdPolicy
         return $authUser->can('Delete:Household');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Household');
+    }
+
     public function restore(AuthUser $authUser, Household $household): bool
     {
         return $authUser->can('Restore:Household');

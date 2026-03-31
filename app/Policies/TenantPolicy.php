@@ -37,6 +37,11 @@ class TenantPolicy
         return $authUser->can('Delete:Tenant');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Tenant');
+    }
+
     public function restore(AuthUser $authUser, Tenant $tenant): bool
     {
         return $authUser->can('Restore:Tenant');

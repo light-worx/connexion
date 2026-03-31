@@ -27,6 +27,11 @@ class SongResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
+    public static function canAccess(): bool
+    {
+        return setting('worship_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return SongForm::configure($schema);

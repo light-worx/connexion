@@ -37,6 +37,11 @@ class PastorPolicy
         return $authUser->can('Delete:Pastor');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Pastor');
+    }
+
     public function restore(AuthUser $authUser, Pastor $pastor): bool
     {
         return $authUser->can('Restore:Pastor');

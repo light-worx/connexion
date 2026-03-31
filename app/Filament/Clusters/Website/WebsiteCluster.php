@@ -9,4 +9,9 @@ use Filament\Support\Icons\Heroicon;
 class WebsiteCluster extends Cluster
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGlobeAlt;
+
+    public static function canAccess(): bool
+    {
+        return setting('website_module');
+    }
 }

@@ -27,6 +27,11 @@ class ServiceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'servicedate';
 
+    public static function canAccess(): bool
+    {
+        return setting('worship_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ServiceForm::configure($schema);

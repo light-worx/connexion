@@ -37,6 +37,11 @@ class ServicePolicy
         return $authUser->can('Delete:Service');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Service');
+    }
+
     public function restore(AuthUser $authUser, Service $service): bool
     {
         return $authUser->can('Restore:Service');

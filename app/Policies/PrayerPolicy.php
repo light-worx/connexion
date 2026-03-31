@@ -37,6 +37,11 @@ class PrayerPolicy
         return $authUser->can('Delete:Prayer');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Prayer');
+    }
+
     public function restore(AuthUser $authUser, Prayer $prayer): bool
     {
         return $authUser->can('Restore:Prayer');

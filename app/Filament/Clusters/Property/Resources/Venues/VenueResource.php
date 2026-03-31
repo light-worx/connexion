@@ -25,6 +25,11 @@ class VenueResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'venue';
 
+    public static function canAccess(): bool
+    {
+        return setting('property_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return VenueForm::configure($schema);

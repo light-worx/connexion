@@ -37,6 +37,11 @@ class ProjectPolicy
         return $authUser->can('Delete:Project');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Project');
+    }
+
     public function restore(AuthUser $authUser, Project $project): bool
     {
         return $authUser->can('Restore:Project');

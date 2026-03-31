@@ -9,4 +9,9 @@ use Filament\Support\Icons\Heroicon;
 class PeopleCluster extends Cluster
 {
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Users;
+
+    public static function canAccess(): bool
+    {
+        return setting('people_module');
+    }
 }

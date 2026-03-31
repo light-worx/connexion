@@ -25,6 +25,11 @@ class WeekdayServiceResource extends Resource
 
     protected static ?string $cluster = WorshipCluster::class;
 
+    public static function canAccess(): bool
+    {
+        return setting('worship_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return WeekdayServiceForm::configure($schema);

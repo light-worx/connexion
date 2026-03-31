@@ -37,6 +37,11 @@ class RosterPolicy
         return $authUser->can('Delete:Roster');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Roster');
+    }
+
     public function restore(AuthUser $authUser, Roster $roster): bool
     {
         return $authUser->can('Restore:Roster');

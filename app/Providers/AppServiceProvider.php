@@ -25,9 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::before(function ($user, $ability) {
+        /*Gate::before(function ($user, $ability) {
             return $user->hasRole('super_admin') ? true : null;
-        });
+        });*/
         if (Schema::hasTable('filament_settings')){
             Config::set('app.name',setting('app_name','Connexion'));
         } else {

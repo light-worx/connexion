@@ -63,12 +63,6 @@ class AdminPanelProvider extends PanelProvider
                 FilamentReportsPlugin::make(),
                 FilamentSettingsPlugin::make()
             ])
-            ->userMenuItems([
-                Action::make('module_manager')
-                    ->label('Modules')
-                    ->url('/admin/module-manager')
-                    ->icon('heroicon-o-puzzle-piece')
-            ])
             ->authMiddleware([
                 Authenticate::class,
             ]);

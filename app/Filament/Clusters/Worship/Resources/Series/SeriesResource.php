@@ -27,6 +27,11 @@ class SeriesResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'series';
 
+    public static function canAccess(): bool
+    {
+        return setting('worship_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return SeriesForm::configure($schema);

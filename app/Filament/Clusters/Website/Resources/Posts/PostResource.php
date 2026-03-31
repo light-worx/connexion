@@ -25,6 +25,11 @@ class PostResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
+    public static function canAccess(): bool
+    {
+        return setting('website_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return PostForm::configure($schema);

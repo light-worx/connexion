@@ -37,6 +37,11 @@ class PostPolicy
         return $authUser->can('Delete:Post');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Post');
+    }
+
     public function restore(AuthUser $authUser, Post $post): bool
     {
         return $authUser->can('Restore:Post');

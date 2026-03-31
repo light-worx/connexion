@@ -37,6 +37,11 @@ class SeriesPolicy
         return $authUser->can('Delete:Series');
     }
 
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Series');
+    }
+
     public function restore(AuthUser $authUser, Series $series): bool
     {
         return $authUser->can('Restore:Series');

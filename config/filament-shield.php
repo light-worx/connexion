@@ -22,7 +22,7 @@ return [
     'shield_resource' => [
         'slug' => 'shield/roles',
         'show_model_path' => true,
-        'cluster' => null,
+        'cluster' => Lightworx\FilamentSettings\Filament\Clusters\SettingsCluster::class,
         'tabs' => [
             'pages' => true,
             'widgets' => true,

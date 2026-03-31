@@ -25,6 +25,11 @@ class ProjectResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'project';
 
+    public static function canAccess(): bool
+    {
+        return setting('website_module');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return ProjectForm::configure($schema);
