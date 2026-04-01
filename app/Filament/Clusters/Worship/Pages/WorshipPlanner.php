@@ -14,7 +14,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use App\app\Classes\LiturgicalDateResolver;
+use App\Classes\LiturgicalDateResolver;
 use App\Filament\Clusters\Worship\WorshipCluster;
 use App\Models\Prayer;
 use App\Models\ServicePlan;
@@ -26,7 +26,7 @@ class WorshipPlanner extends Page implements HasForms
     use InteractsWithForms;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendar;
-    protected string $view = 'worship::worship-planner';
+    protected string $view = 'worship-planner';
     protected static ?string $cluster = WorshipCluster::class;
     protected static ?int $navigationSort = 5;
 

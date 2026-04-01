@@ -24,7 +24,7 @@ class Person extends Model
 
     public function posts(): HasMany
     {
-        if ($this->moduleOn('website')) {
+        if (setting('website_module')) {
             return $this->hasMany(Post::class);
         } else {
             return $this->whereNull('id');
@@ -34,7 +34,7 @@ class Person extends Model
 
     public function services(): HasMany
     {
-        if ($this->moduleOn('worship')) {
+        if (setting('worship_module')) {
             return $this->hasMany(Service::class);
         } else {
             return $this->whereNull('id');
