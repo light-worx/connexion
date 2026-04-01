@@ -14,12 +14,15 @@ use App\Filament\Clusters\Worship\Resources\Services\Schemas\ServiceForm;
 use App\Filament\Clusters\Worship\Resources\Services\Tables\ServicesTable;
 use App\Filament\Clusters\Worship\WorshipCluster;
 use App\Models\Service;
+use UnitEnum;
 
 class ServiceResource extends Resource
 {
     protected static ?int $navigationSort = 1;
     
     protected static ?string $model = Service::class;
+
+    protected static string | UnitEnum | null $navigationGroup = 'Service planning';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedQueueList;
 

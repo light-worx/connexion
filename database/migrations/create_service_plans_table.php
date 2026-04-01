@@ -10,8 +10,8 @@ return new class extends Migration
         Schema::create('service_plans', function ($table) {
             $table->increments('id')->unsigned();
             $table->date('date')->unique();
-            $table->integer('series_id');
-            $table->integer('person_id');
+            $table->integer('series_id')->nullable();
+            $table->integer('person_id')->nullable();
             $table->string('details')->nullable();
             $table->string('reading')->nullable();
             $table->text('notes')->nullable();

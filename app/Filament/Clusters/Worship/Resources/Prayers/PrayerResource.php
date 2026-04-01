@@ -14,6 +14,7 @@ use App\Filament\Clusters\Worship\Resources\Prayers\Schemas\PrayerForm;
 use App\Filament\Clusters\Worship\Resources\Prayers\Tables\PrayersTable;
 use App\Filament\Clusters\Worship\WorshipCluster;
 use App\Models\Prayer;
+use UnitEnum;
 
 class PrayerResource extends Resource
 {
@@ -22,6 +23,8 @@ class PrayerResource extends Resource
     protected static ?int $navigationSort = 3;
 
     protected static ?string $modelLabel = 'liturgy';
+
+    protected static string | UnitEnum | null $navigationGroup = 'Service planning';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 

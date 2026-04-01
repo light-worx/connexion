@@ -14,6 +14,7 @@ use App\Filament\Clusters\Worship\Resources\Chords\Pages\ListChords;
 use App\Filament\Clusters\Worship\Resources\Chords\Schemas\ChordForm;
 use App\Filament\Clusters\Worship\Resources\Chords\Tables\ChordsTable;
 use App\Filament\Clusters\Worship\WorshipCluster;
+use UnitEnum;
 
 class ChordResource extends Resource
 {
@@ -22,6 +23,8 @@ class ChordResource extends Resource
     protected static ?int $navigationSort = 6;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMusicalNote;
+
+    protected static string | UnitEnum | null $navigationGroup = 'Admin';
 
     protected static ?string $cluster = WorshipCluster::class;
 

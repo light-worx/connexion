@@ -20,12 +20,14 @@ use App\Models\Prayer;
 use App\Models\ServicePlan;
 use App\Models\Series;
 use App\Models\Song;
+use UnitEnum;
 
 class WorshipPlanner extends Page implements HasForms
 {
     use InteractsWithForms;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendar;
+    protected static string | UnitEnum | null $navigationGroup = 'Service planning';
     protected string $view = 'worship-planner';
     protected static ?string $cluster = WorshipCluster::class;
     protected static ?int $navigationSort = 5;

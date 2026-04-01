@@ -14,6 +14,7 @@ use App\Filament\Clusters\Worship\Resources\Series\Pages\ListSeries;
 use App\Filament\Clusters\Worship\Resources\Series\Schemas\SeriesForm;
 use App\Filament\Clusters\Worship\Resources\Series\Tables\SeriesTable;
 use App\Filament\Clusters\Worship\WorshipCluster;
+use UnitEnum;
 
 class SeriesResource extends Resource
 {
@@ -22,6 +23,8 @@ class SeriesResource extends Resource
     protected static ?int $navigationSort = 4;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
+
+    protected static string | UnitEnum | null $navigationGroup = 'Admin';
 
     protected static ?string $cluster = WorshipCluster::class;
 

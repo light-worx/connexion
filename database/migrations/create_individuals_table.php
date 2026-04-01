@@ -15,7 +15,9 @@ return new class extends Migration
             $table->string('surname', 255);
             $table->string('firstname', 255);
             $table->string('email', 255)->nullable();
-            $table->string('birthdate', 255)->nullable();
+            $table->integer('birth_year')->nullable();
+            $table->integer('birth_month')->nullable();
+            $table->integer('birth_day')->nullable();
             $table->string('sex', 255)->nullable();
             $table->string('image', 255)->nullable();
             $table->string('memberstatus', 255)->nullable();

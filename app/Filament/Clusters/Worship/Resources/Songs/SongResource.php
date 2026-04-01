@@ -14,6 +14,7 @@ use App\Filament\Clusters\Worship\Resources\Songs\Schemas\SongForm;
 use App\Filament\Clusters\Worship\Resources\Songs\Tables\SongsTable;
 use App\Filament\Clusters\Worship\WorshipCluster;
 use App\Models\Song;
+use UnitEnum;
 
 class SongResource extends Resource
 {
@@ -22,6 +23,8 @@ class SongResource extends Resource
     protected static ?int $navigationSort = 2;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSpeakerWave;
+
+    protected static string | UnitEnum | null $navigationGroup = 'Service planning';
 
     protected static ?string $cluster = WorshipCluster::class;
 

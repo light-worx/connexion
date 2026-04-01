@@ -14,12 +14,15 @@ use App\Filament\Clusters\Worship\Resources\WeekdayServices\Schemas\WeekdayServi
 use App\Filament\Clusters\Worship\Resources\WeekdayServices\Tables\WeekdayServicesTable;
 use App\Filament\Clusters\Worship\WorshipCluster;
 use App\Models\WeekdayService;
+use UnitEnum;
 
 class WeekdayServiceResource extends Resource
 {
     protected static ?string $model = WeekdayService::class;
 
     protected static ?int $navigationSort = 7;
+
+    protected static string | UnitEnum | null $navigationGroup = 'Admin';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDateRange;
 
