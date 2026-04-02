@@ -2,15 +2,18 @@
 
 namespace App\Filament\Clusters\People\Resources\Individuals\Schemas;
 
+use App\Models\Individual;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use Livewire\Livewire;
 
 class IndividualForm
 {
@@ -94,24 +97,50 @@ class IndividualForm
                             ]),
                         Tab::make('Contact')
                             ->schema([
-                                Select::make('household_id')
-                                    ->required()
-                                    ->label('Household')
-                                    ->relationship('household', 'addressee')
-                                    ->searchable()
-                                    ->preload()
-                                    ->createOptionForm([
-                                        TextInput::make('addressee')->required(),
-                                        TextInput::make('address'),
-                                        TextInput::make('phone'),
+                                Grid::make(1)
+                                    ->schema([
+                                        Select::make('household_id')
+                                            ->required()
+                                            ->label('Household')
+                                            ->relationship('household', 'surname')
+                                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name)
+                                            ->searchable()
+                                            ->preload()
+                                            ->createOptionForm(function (Get $get){
+                                                return [
+                                                TextInput::make('address1'),
+                                                TextInput::make('address2'),
+                                                TextInput::make('address3'),
+                                                TextInput::make('homephone'),
+                                                TextInput::make('surname')
+                                                    ->default($get('surname'))
+                                                    ->required(),
+                                            ];}),
+                                        Section::make('Household')
+                                            ->schema([
+                                                TextInput::make('household.surname')
+                                                    ->label('Surname')
+                                                    ->disabled(fn ($get) => false) // true for read-only, false for editable
+                                                    ->required(),
+                                                TextInput::make('household.address1')->label('Address 1'),
+                                                TextInput::make('household.address2')->label('Address 2'),
+                                                TextInput::make('household.address3')->label('Address 3'),
+                                                TextInput::make('household.homephone')->label('Phone'),
+                                            ])
+                                            ->visible(fn ($get) => $get('household_id') !== null),
                                     ]),
-                                TextInput::make('email')
-                                    ->label('Email address')
-                                    ->email(),
-                                TextInput::make('officephone')
-                                    ->tel(),
-                                TextInput::make('cellphone')
-                                    ->tel(),
+                                Grid::make(1)
+                                    ->schema([
+                                        TextInput::make('email')
+                                            ->label('Email address')
+                                            ->email(),
+                                        TextInput::make('officephone')
+                                            ->label('Office landline')
+                                            ->tel(),
+                                        TextInput::make('cellphone')
+                                            ->label('Cell phone')
+                                            ->tel()
+                                    ]),
                             ]),
                         Tab::make('Pastoral')
                             ->schema([

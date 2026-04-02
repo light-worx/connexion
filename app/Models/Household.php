@@ -18,6 +18,6 @@ class Household extends Model
 
     public function getNameAttribute()
     {
-        return $this->addressee;
+        return "{$this->surname} Household ({$this->address1})";
     }
 }
