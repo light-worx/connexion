@@ -14,6 +14,7 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Livewire\Livewire;
+use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
 class IndividualForm
 {
@@ -117,15 +118,15 @@ class IndividualForm
                                                     ->required(),
                                             ];}),
                                         Section::make('Household')
+                                            ->relationship('household')
                                             ->schema([
-                                                TextInput::make('household.surname')
-                                                    ->label('Surname')
-                                                    ->disabled(fn ($get) => false) // true for read-only, false for editable
-                                                    ->required(),
-                                                TextInput::make('household.address1')->label('Address 1'),
-                                                TextInput::make('household.address2')->label('Address 2'),
-                                                TextInput::make('household.address3')->label('Address 3'),
-                                                TextInput::make('household.homephone')->label('Phone'),
+                                                TextInput::make('address1')->label('Address 1'),
+                                                TextInput::make('address2')->label('Address 2'),
+                                                TextInput::make('address3')->label('Address 3'),
+                                                TextInput::make('homephone')->label('Phone'),
+                                                TextInput::make('surname')
+                                                    ->label('Surname (used for sorting and to describe household)')
+                                                    ->disabled(fn ($get) => false),
                                             ])
                                             ->visible(fn ($get) => $get('household_id') !== null),
                                     ]),
@@ -133,13 +134,19 @@ class IndividualForm
                                     ->schema([
                                         TextInput::make('email')
                                             ->label('Email address')
-                                            ->email(),
-                                        TextInput::make('officephone')
-                                            ->label('Office landline')
-                                            ->tel(),
-                                        TextInput::make('cellphone')
-                                            ->label('Cell phone')
-                                            ->tel()
+                                            ->prefixIcon('heroicon-m-envelope')
+                                            ->email(),                                            
+                                        PhoneInput::make('officephone')
+                                            ->defaultCountry('ZA')
+                                            ->strictMode(true)
+                                            ->placeholder('031 123 4567')
+                                            ->i18n(["searchPlaceholder" => ''])
+                                            ->label('Office landline'),
+                                        PhoneInput::make('cellphone')
+                                            ->placeholder('082 123 4567')
+                                            ->defaultCountry('ZA')
+                                            ->strictMode(true)
+                                            ->i18n(["searchPlaceholder" => ''])
                                     ]),
                             ]),
                         Tab::make('Pastoral')

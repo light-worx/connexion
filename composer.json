@@ -14,7 +14,8 @@
         "laravel/tinker": "^3.0",
         "light-worx/filament-pwa": "dev-master",
         "light-worx/filament-reports": "dev-master",
-        "light-worx/filament-settings": "dev-master"
+        "light-worx/filament-settings": "dev-master",
+        "ysfkaya/filament-phone-input": "^4.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
