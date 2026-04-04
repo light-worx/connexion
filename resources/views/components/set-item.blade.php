@@ -75,7 +75,7 @@
                                     @endif
                                     @php
                                         if (isset($item->model->setitemable_id)){
-                                            $sp = \Bishopm\Church\Models\Setitem::with('setitemable')->where('id',$item->model->id)->first();
+                                            $sp = \App\Models\Setitem::with('setitemable')->where('id',$item->model->id)->first();
                                             print "<b>" . $sp->setitemable->title . "</b> ";
                                             if (isset($item->model->note)){
                                                 print " (" . $item->model->note . ")";
