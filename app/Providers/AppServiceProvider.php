@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Helpers\InstallationHelper;
+use App\Livewire\ServicePlanner;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
         } else {
             Config::set('app.name','Connexion');
         }
+        Livewire::component('service-planner', ServicePlanner::class); 
     }
 }

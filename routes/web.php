@@ -4,10 +4,11 @@ use App\Http\Middleware\CheckLogin;
 use Illuminate\Support\Facades\Route;
 use Spatie\Honeypot\ProtectAgainstSpam;
 use App\Http\Controllers\AppController;
+use Livewire\Livewire;
 
-//Livewire::setUpdateRoute(function ($handle) {
-//    return Route::post('/custom/livewire/update', $handle)->middleware(['web']);
-//});
+/*Livewire::setUpdateRoute(function ($handle) {
+    return Route::post('/custom/livewire/update', $handle)->middleware(['web']);
+});*/
 // App routes
 Route::domain(env('PWA_DOMAIN'))->group(function() {
     //Route::middleware(['web',CheckLogin::class])->controller('\App\Http\Controllers\HomeController')->group(function () {
@@ -44,6 +45,7 @@ Route::domain(env('PWA_DOMAIN'))->group(function() {
         Route::get('/sermons', 'sermons')->name('app.sermons');
         Route::get('/sermons/{year}/{slug}', 'series')->name('app.series');
         Route::get('/sermon/{year}/{slug}/{id}', 'sermon')->name('app.sermon');
+        Route::get('/service/{id}', 'service')->name('app.service');
         Route::get('/settings', 'settings')->name('app.settings');
         Route::get('/songs', 'songs')->name('app.songs');
         Route::get('/songs/{id}', 'song')->name('app.song');

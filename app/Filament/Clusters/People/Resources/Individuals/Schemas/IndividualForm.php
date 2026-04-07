@@ -2,7 +2,6 @@
 
 namespace App\Filament\Clusters\People\Resources\Individuals\Schemas;
 
-use App\Models\Individual;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -13,7 +12,6 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Livewire\Livewire;
 use Ysfkaya\FilamentPhoneInput\Forms\PhoneInput;
 
 class IndividualForm

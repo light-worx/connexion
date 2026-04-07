@@ -45,4 +45,9 @@ class Service extends Model
             ]);
         });
     }
+
+    public function plan()
+    {
+        return $this->hasOne(ServicePlan::class);
+    }
 }
