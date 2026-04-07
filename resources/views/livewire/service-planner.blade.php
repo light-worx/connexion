@@ -3,73 +3,115 @@
     <!-- TABS -->
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item">
-            <button class="nav-link active"
-                    data-bs-toggle="tab"
-                    data-bs-target="#songsTab">
+            <button type="button"
+                    class="nav-link @if($activeTab==='songsTab') active @endif"
+                    wire:click="setTab('songsTab')">
                 Songs
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link"
-                    data-bs-toggle="tab"
-                    data-bs-target="#liturgyTab">
+            <button type="button"
+                    class="nav-link @if($activeTab==='liturgyTab') active @endif"
+                    wire:click="setTab('liturgyTab')">
                 Liturgy
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link"
-                    data-bs-toggle="tab"
-                    data-bs-target="#orderTab">
+            <button type="button"
+                    class="nav-link @if($activeTab==='orderTab') active @endif"
+                    wire:click="setTab('orderTab')">
                 Order
             </button>
         </li>
     </ul>
 
     <div class="tab-content">
-
+        <!-- SEARCH -->
         <!-- =========================
              SONGS TAB
         ========================== -->
-        <div class="tab-pane fade show active" id="songsTab">
+        <div class="tab-pane fade {{ $activeTab === 'songsTab' ? 'show active' : '' }}" id="songsTab">
+            <!-- ONLY inside #songsTab -->
+            <div class="mb-2">
+                <input type="text" class="form-control mb-2" placeholder="Search songs..." wire:model.live="songSearch">
+                <div class="d-flex gap-2">
 
-            <!-- PLANNED SONGS -->
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    Planned Songs
+                    <div class="form-check">
+                        <input type="checkbox" value="hymn" wire:model.live="types">
+                        <label class="form-check-label small">Hymn</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input type="checkbox" value="contemporary" wire:model.live="types">
+                        <label class="form-check-label small">Contemporary</label>
+                    </div>
+
+                    <div class="form-check">
+                        <input type="checkbox" value="archive" wire:model.live="types">
+                        <label class="form-check-label small">Archive</label>
+                    </div>
+
                 </div>
 
-                <div class="card-body p-2">
-                    @forelse($plannedSongs as $item)
-                        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-1">
-
-                            <div>
-                                <strong>{{ $item->title }}</strong>
-                            </div>
-
-                            <div class="d-flex gap-1">
-                                <button wire:click="toOrder({{ $item->id }})"
-                                        class="btn btn-sm btn-outline-success">
-                                    →
-                                </button>
-
-                                <button wire:click="removePlanned({{ $item->id }})"
-                                        class="btn btn-sm btn-outline-danger">
-                                    ✕
-                                </button>
-                            </div>
-
-                        </div>
-                    @empty
-                        <div class="text-muted small">No planned songs yet</div>
-                    @endforelse
-                </div>
             </div>
 
-            <!-- SEARCH -->
-            <input type="text"
-                   class="form-control mb-2"
-                   placeholder="Search songs..."
-                   wire:model="search">
+            <!-- PLANNED SONGS -->
+            <div class="accordion mb-3" id="songsAccordion">
+
+                <div class="accordion-item">
+
+                    <h2 class="accordion-header" id="songsHeading">
+                        <button class="accordion-button collapsed py-2"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#songsCollapse"
+                                aria-expanded="false">
+
+                            Planned Songs
+
+                            <span class="badge bg-primary ms-2">
+                                {{ count($plannedSongs) }}
+                            </span>
+
+                        </button>
+                    </h2>
+
+                    <div id="songsCollapse"
+                        class="accordion-collapse collapse"
+                        data-bs-parent="#songsAccordion">
+
+                        <div class="accordion-body p-2">
+
+                            @forelse($plannedSongs as $item)
+                                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-1">
+
+                                    <div>
+                                        <strong>{{ $item->title }}</strong>
+                                    </div>
+
+                                    <div class="d-flex gap-1">
+                                        <button wire:click="toOrder({{ $item->id }})"
+                                                class="btn btn-sm btn-outline-success">
+                                            →
+                                        </button>
+
+                                        <button wire:click="removePlanned({{ $item->id }})"
+                                                class="btn btn-sm btn-outline-danger">
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                </div>
+                            @empty
+                                <div class="text-muted small">No planned songs yet</div>
+                            @endforelse
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
 
             <!-- RESULTS -->
             <div class="list-group">
@@ -80,7 +122,7 @@
                             <div class="fw-bold">{{ $song->title }}</div>
 
                             <small class="text-muted">
-                                {{ ucfirst($song->music_type ?? '') }}
+                                {{ ucfirst($song->musictype ?? '') }}
                                 @if($song->tempo)
                                     • {{ $song->tempo }}
                                 @endif
@@ -112,46 +154,63 @@
         <!-- =========================
              LITURGY TAB
         ========================== -->
-        <div class="tab-pane fade" id="liturgyTab">
-
+        <div class="tab-pane fade {{ $activeTab === 'liturgyTab' ? 'show active' : '' }}" id="liturgyTab">
+            <!-- SEARCH -->
+            <input type="text" class="form-control mb-2" placeholder="Search liturgy..." wire:model.live="liturgySearch">
             <!-- PLANNED LITURGY -->
-            <div class="card mb-3">
-                <div class="card-header py-2">
-                    Planned Liturgy
-                </div>
+            <div class="accordion mb-3" id="liturgyAccordion">
 
-                <div class="card-body p-2">
-                    @forelse($plannedLiturgy as $item)
-                        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-1">
+                <div class="accordion-item">
 
-                            <div>
-                                <strong>{{ $item->title }}</strong>
-                            </div>
+                    <h2 class="accordion-header" id="liturgyHeading">
+                        <button class="accordion-button collapsed py-2"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#liturgyCollapse"
+                                aria-expanded="false">
 
-                            <div class="d-flex gap-1">
-                                <button wire:click="toOrder({{ $item->id }})"
-                                        class="btn btn-sm btn-outline-success">
-                                    →
-                                </button>
+                            Planned Liturgy
 
-                                <button wire:click="removePlanned({{ $item->id }})"
-                                        class="btn btn-sm btn-outline-danger">
-                                    ✕
-                                </button>
-                            </div>
+                            <span class="badge bg-primary ms-2">
+                                {{ count($plannedLiturgy) }}
+                            </span>
 
+                        </button>
+                    </h2>
+
+                    <div id="liturgyCollapse"
+                        class="accordion-collapse collapse"
+                        data-bs-parent="#liturgyAccordion">
+
+                        <div class="accordion-body p-2">
+
+                            @forelse($plannedLiturgy as $item)
+                                <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-1">
+
+                                    <div>
+                                        <strong>{{ $item->title }}</strong>
+                                    </div>
+
+                                    <div class="d-flex gap-1">
+                                        <button wire:click="toOrder({{ $item->id }})"
+                                                class="btn btn-sm btn-outline-success">
+                                            →
+                                        </button>
+
+                                        <button wire:click="removePlanned({{ $item->id }})"
+                                                class="btn btn-sm btn-outline-danger">
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                </div>
+                            @empty
+                                <div class="text-muted small">No planned liturgy yet</div>
+                            @endforelse
                         </div>
-                    @empty
-                        <div class="text-muted small">No planned liturgy yet</div>
-                    @endforelse
+                    </div>
                 </div>
             </div>
-
-            <!-- SEARCH -->
-            <input type="text"
-                   class="form-control mb-2"
-                   placeholder="Search liturgy..."
-                   wire:model="search">
 
             <!-- RESULTS -->
             <div class="list-group">
@@ -178,7 +237,7 @@
         <!-- =========================
              ORDER TAB
         ========================== -->
-        <div class="tab-pane fade" id="orderTab">
+        <div class="tab-pane fade {{ $activeTab === 'orderTab' ? 'show active' : '' }}" id="orderTab">
 
             <div class="card">
                 <div class="card-header py-2">

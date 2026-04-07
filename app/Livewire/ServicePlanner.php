@@ -12,8 +12,9 @@ class ServicePlanner extends Component
 {
     public $service;
     public $plan;
-
-    public $search = '';
+    public $activeTab = 'songsTab';
+    public $songSearch = '';
+    public $liturgySearch = '';
 
     public $songs = [];
     public $liturgy = [];
@@ -21,6 +22,7 @@ class ServicePlanner extends Component
     public $plannedSongs = [];
     public $plannedLiturgy = [];
     public $orderItems = [];
+    public $types = ['hymn', 'contemporary'];
 
     public function mount($service)
     {
@@ -30,9 +32,18 @@ class ServicePlanner extends Component
         $this->loadAll();
     }
 
-    public function updatedSearch()
+    public function setTab($tab)
+    {
+        $this->activeTab = $tab;
+    }
+
+    public function updatedSongSearch()
     {
         $this->loadSongs();
+    }
+
+    public function updatedLiturgySearch()
+    {
         $this->loadLiturgy();
     }
 
@@ -62,12 +73,18 @@ class ServicePlanner extends Component
             ->leftJoinSub($lastUsed, 'lu', fn($j) => $j->on('songs.id', '=', 'lu.content_id'))
             ->select('songs.*', 'lu.last_used_date');
 
-        if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('songs.title', 'like', "%{$this->search}%");
+        if (!empty($this->types)) {
+            $query->whereIn('songs.musictype', $this->types);
+        }
 
-                if (strlen($this->search) >= 3) {
-                    $q->orWhereFullText(['songs.title', 'songs.lyrics'], $this->search);
+        if ($this->songSearch) {
+            $search = $this->songSearch;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('songs.title', 'like', "%{$search}%");
+
+                if (strlen($search) >= 3) {
+                    $q->orWhereFullText(['songs.title', 'songs.lyrics'], $search);
                 }
             });
         }
@@ -82,9 +99,9 @@ class ServicePlanner extends Component
     {
         $query = Prayer::query();
 
-        if ($this->search) {
-            $query->where('title', 'like', "%{$this->search}%")
-                  ->orWhere('content', 'like', "%{$this->search}%");
+        if ($this->liturgySearch) {
+            $query->where('title', 'like', "%{$this->liturgySearch}%")
+                  ->orWhere('words', 'like', "%{$this->liturgySearch}%");
         }
 
         $this->liturgy = $query->limit(30)->get();
@@ -131,6 +148,7 @@ class ServicePlanner extends Component
         ]);
 
         $this->loadPlanned();
+        $this->activeTab = 'songsTab';
     }
 
     public function addLiturgy($id)
@@ -145,6 +163,7 @@ class ServicePlanner extends Component
         ]);
 
         $this->loadPlanned();
+        $this->activeTab = 'liturgyTab';
     }
 
     public function toOrder($id)
@@ -174,6 +193,11 @@ class ServicePlanner extends Component
     {
         Setitem::find($id)?->delete();
         $this->loadOrder();
+    }
+
+    public function updatedTypes()
+    {
+        $this->loadSongs();
     }
 
     public function render()
