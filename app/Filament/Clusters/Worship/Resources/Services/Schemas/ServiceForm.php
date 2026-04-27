@@ -123,8 +123,8 @@ class ServiceForm
                             }),
                         Checkbox::make('include_planner_items')
                             ->label('Include planner items for this date')
-                            ->default(true),                   
-                        View::make('worship::repeater-style'),     
+                            ->hiddenOn('edit')
+                            ->default(true),                       
                         Repeater::make('setitems')
                             ->relationship('setitems')
                             ->hiddenLabel(true)

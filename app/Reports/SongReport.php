@@ -19,6 +19,7 @@ class SongReport extends BaseReport
         $this->config['page']['margins']['left'] = 15;
         $this->config['page']['margins']['right'] = 10;
         $this->config['page']['margins']['top'] = 20;
+        $this->config['page']['orientation'] = 'P';
         $this->config['footer']['enabled'] = false;
     }
 
