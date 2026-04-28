@@ -52,7 +52,6 @@
                             </div>
 
                             @if ($plan)
-                                {{dd($plan)}}
                                 {{-- Series --}}
                                 @if (!empty($plan['series']['image']))
                                     <img
@@ -89,40 +88,11 @@
                                 {{-- MULTI-SERVICE DISPLAY --}}
                                 @if (!empty($plan['plan_services']))
                                     <div class="mt-3 space-y-2 text-xs text-gray-700 dark:text-gray-300">
-                                        @foreach ($plan['plan_services'] as $service)
-                                            <div class="border-t pt-2">
-                                                {{-- Service name --}}
-                                                <div class="font-semibold text-gray-800 dark:text-gray-200">
-                                                    {{ $service['time'] }}
-                                                    @if (!empty($service['time']))
-                                                        <span class="text-gray-500">
-                                                            ({{ \Carbon\Carbon::parse($service['time'])->format('H:i') }})
-                                                        </span>
-                                                    @endif
-                                                </div>
-
-                                                {{-- Set items --}}
-                                                @if (!empty($service['setitems']))
-                                                    <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1">
-                                                        @foreach ($service['setitems'] as $item)
-                                                            @if ($item['content_type'] === 'song' && !empty($item['song']))
-                                                                <span>🎵 {{ $item['song']['title'] }}</span>
-                                                            @elseif ($item['content_type'] === 'prayer' && !empty($item['prayer']))
-                                                                <span>📖 {{ $item['prayer']['title'] }}</span>
-                                                            @endif
-                                                        @endforeach
-                                                    </div>
-                                                @else
-                                                    <div class="text-gray-400 italic">
-                                                        No items yet
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <div class="mt-2 text-xs italic text-gray-400">
-                                        No services defined
+                                        @if (count($plan['plan_services'])==1)
+                                            1 service
+                                        @else
+                                            {{count($plan['plan_services'])}} services
+                                        @endif
                                     </div>
                                 @endif
 

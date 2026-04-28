@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->string('role');
             $table->boolean('active')->nullable();
+            $table->integer('external_id')->nullable()->index();
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
         });

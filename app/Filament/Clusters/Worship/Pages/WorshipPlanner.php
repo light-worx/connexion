@@ -20,6 +20,7 @@ use App\Models\Prayer;
 use App\Models\ServicePlan;
 use App\Models\Series;
 use App\Models\Song;
+use App\Services\PreachingPlanService;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TimePicker;
 use UnitEnum;
@@ -220,12 +221,17 @@ class WorshipPlanner extends Page implements HasForms
 
     protected function loadPlans(): void
     {
-        $this->plans = ServicePlan::with(['series', 'person', 'setitems.song', 'setitems.prayer'])
-            ->withCount(['services as services_count',])    
-            ->whereYear('date', $this->year)
-            ->get()
-            ->keyBy(fn ($plan) => $plan->date->toDateString())
-            ->toArray();
+        $this->plans = ServicePlan::with([
+            'series',
+            'person',
+            'planServices.setitems.song',
+            'planServices.setitems.prayer',
+        ])
+        ->withCount(['services as services_count'])
+        ->whereYear('date', $this->year)
+        ->get()
+        ->keyBy(fn ($plan) => $plan->date->toDateString())
+        ->toArray();
     }
 
 
@@ -328,6 +334,8 @@ class WorshipPlanner extends Page implements HasForms
                     ->where('date', $this->selectedDate)
                     ->first();
 
+                $external = app(PreachingPlanService::class)->getPreacher($this->selectedDate, setting('services')[0]);
+
                 $form->fill([
                     'series_id' => $plan?->series_id,
                     'details'   => $plan?->details,
@@ -402,6 +410,15 @@ class WorshipPlanner extends Page implements HasForms
                     ->success()
                     ->send();
             });
+    }
+
+    protected function resolvePersonFromExternal(?string $externalId): ?int
+    {
+        if (!$externalId) {
+            return null;
+        }
+
+        return Person::where('external_id', $externalId)->value('id');
     }
 
 }
