@@ -43,6 +43,11 @@ class ServicePlan extends Model
         return $this->setitems()->where('content_type', 'song');
     }
 
+    public function planServices()
+    {
+        return $this->hasMany(PlanService::class);
+    }
+
     public function prayerSetitems()
     {
         return $this->setitems()->where('content_type', 'prayer');

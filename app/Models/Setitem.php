@@ -20,6 +20,11 @@ class Setitem extends Model
         return $this->belongsTo(ServicePlan::class);
     }
 
+    public function planService()
+    {
+        return $this->belongsTo(PlanService::class);
+    }
+
     public function content()
     {
         return match ($this->content_type) {

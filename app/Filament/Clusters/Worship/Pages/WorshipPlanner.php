@@ -20,6 +20,8 @@ use App\Models\Prayer;
 use App\Models\ServicePlan;
 use App\Models\Series;
 use App\Models\Song;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TimePicker;
 use UnitEnum;
 
 class WorshipPlanner extends Page implements HasForms
@@ -264,26 +266,65 @@ class WorshipPlanner extends Page implements HasForms
                     })
                     ->searchable()
                     ->placeholder('Select a preacher'),
-            Select::make('songs')
-                ->label('Song ideas')
-                ->multiple()
-                ->searchable()
-                ->options(
-                    Song::orderBy('title')
-                        ->pluck('title', 'id')
-                ),
+                Select::make('songs')
+                    ->label('Song ideas')
+                    ->multiple()
+                    ->searchable()
+                    ->options(
+                        Song::orderBy('title')
+                            ->pluck('title', 'id')
+                    ),
 
-            Select::make('prayers')
-                ->label('Liturgy ideas')
-                ->multiple()
-                ->searchable()
-                ->options(
-                    Prayer::orderBy('title')
-                        ->pluck('title', 'id')
-                ),
+                Select::make('prayers')
+                    ->label('Liturgy ideas')
+                    ->multiple()
+                    ->searchable()
+                    ->options(
+                        Prayer::orderBy('title')
+                            ->pluck('title', 'id')
+                    ),
+                Repeater::make('plan_services')
+                    ->label('Services')
+                    ->default(fn () => collect(setting('services'))
+                        ->map(fn ($time) => [
+                            'time' => $time,
+                            'songs' => [],
+                            'prayers' => [],
+                        ])
+                        ->toArray()
+                    )
+                    ->collapsed()
+                    ->minItems(count(setting('services')))
+                    ->maxItems(count(setting('services')))
+                    ->deletable(false)
+                    ->itemLabel(fn (array $state) => $state['time'] ?? 'Service')
+                    ->schema([
+                        Select::make('time')
+                            ->label('Service time')
+                            ->options(collect(setting('services'))->mapWithKeys(fn ($t) => [$t => $t]))
+                            ->required()
+                            ->disableOptionsWhenSelectedInSiblingRepeaterItems(), // prevents duplicates
+
+                        Select::make('songs')
+                            ->label('Songs')
+                            ->multiple()
+                            ->searchable()
+                            ->options(
+                                Song::orderBy('title')->pluck('title', 'id')
+                            ),
+
+                        Select::make('prayers')
+                            ->label('Liturgy')
+                            ->multiple()
+                            ->searchable()
+                            ->options(
+                                Prayer::orderBy('title')->pluck('title', 'id')
+                            ),
+                    ])
+                    ->addActionLabel('Add service')
             ])
             ->mountUsing(function (Schema $form) {
-                $plan = ServicePlan::with('setitems')
+                $plan = ServicePlan::with('planServices.setitems')
                     ->where('date', $this->selectedDate)
                     ->first();
 
@@ -291,9 +332,31 @@ class WorshipPlanner extends Page implements HasForms
                     'series_id' => $plan?->series_id,
                     'details'   => $plan?->details,
                     'reading'   => $plan?->reading,
-                    'person_id'=> $plan?->person_id,
-                    'songs'     => $plan?->songSetitems()->pluck('content_id')->toArray() ?? [],
-                    'prayers' => $plan?->prayerSetitems()->pluck('content_id')->toArray() ?? [],
+                    'person_id' => $plan?->person_id,
+
+                    'plan_services' => $plan
+                        ? $plan->planServices->map(function ($service) {
+                            return [
+                                'time' => $service->time,
+
+                                'songs' => $service->setitems
+                                    ->where('content_type', 'song')
+                                    ->pluck('content_id')
+                                    ->toArray(),
+
+                                'prayers' => $service->setitems
+                                    ->where('content_type', 'prayer')
+                                    ->pluck('content_id')
+                                    ->toArray(),
+                            ];
+                        })->toArray()
+
+                        // fallback: prepopulate from settings
+                        : collect(setting('services'))->map(fn ($time) => [
+                            'time' => $time,
+                            'songs' => [],
+                            'prayers' => [],
+                        ])->toArray(),
                 ]);
             })
             ->action(function (array $data) {
@@ -307,33 +370,37 @@ class WorshipPlanner extends Page implements HasForms
                     ]
                 );
 
-                // Clear existing provisional set items
-                $plan->setitems()->delete();
+                // wipe existing plan services + items
+                $plan->planServices()->delete();
 
-                $order = 1;
-
-                foreach ($data['songs'] ?? [] as $songId) {
-                    $plan->setitems()->create([
-                        'content_id'   => $songId,
-                        'content_type' => 'song',
-                        'sort_order'   => $order++,
+                foreach ($data['plan_services'] ?? [] as $serviceData) {
+                    $service = $plan->planServices()->create([
+                        'time' => $serviceData['time'],
                     ]);
+
+                    $order = 1;
+
+                    foreach ($serviceData['songs'] ?? [] as $songId) {
+                        $service->setitems()->create([
+                            'content_type' => 'song',
+                            'content_id'   => $songId,
+                            'sort_order'   => $order++,
+                        ]);
+                    }
+
+                    foreach ($serviceData['prayers'] ?? [] as $prayerId) {
+                        $service->setitems()->create([
+                            'content_type' => 'prayer',
+                            'content_id'   => $prayerId,
+                            'sort_order'   => $order++,
+                        ]);
+                    }
                 }
-
-                foreach ($data['prayers'] ?? [] as $prayerId) {
-                    $plan->setitems()->create([
-                        'content_id'   => $prayerId,
-                        'content_type' => 'prayer',
-                        'sort_order'   => $order++,
-                    ]);
-                }
-
-                $this->loadPlans(); 
-
+                $this->loadPlans();
                 Notification::make()
-                ->title('Plan updated successfully')
-                ->success()
-                ->send();
+                    ->title('Plan updated successfully')
+                    ->success()
+                    ->send();
             });
     }
 
