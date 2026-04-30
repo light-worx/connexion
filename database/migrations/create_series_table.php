@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('series', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('series', 255);
             $table->date('startingdate');
             $table->string('image');

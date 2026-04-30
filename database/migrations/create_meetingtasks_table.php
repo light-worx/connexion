@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('meetingtasks', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->text('description');
             $table->integer('individual_id');
             $table->integer('agendaitem_id')->nullable();

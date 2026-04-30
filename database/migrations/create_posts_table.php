@@ -9,7 +9,7 @@ return new class extends Migration
     {
         Schema::create('posts', function ($table) {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->integer('person_id');
             $table->integer('user_id')->default(null);
             $table->string('title', 191)->default(null);

@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('rosters', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('roster', 255);
             $table->string('dayofweek', 255);
             $table->string('message', 255);

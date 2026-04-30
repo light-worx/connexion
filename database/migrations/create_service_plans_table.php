@@ -8,10 +8,10 @@ return new class extends Migration
     public function up()
     {
         Schema::create('service_plans', function ($table) {
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->date('date')->unique();
-            $table->integer('series_id')->nullable();
-            $table->integer('person_id')->nullable();
+            $table->foreignId('series_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('person_id')->nullable()->constrained('persons')->nullOnDelete();
             $table->string('details')->nullable();
             $table->string('reading')->nullable();
             $table->text('notes')->nullable();

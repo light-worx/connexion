@@ -8,7 +8,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('setitems', function ($table) {
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->foreignId('service_plan_id')->nullable();
             $table->foreignId('service_id')->nullable();
             $table->foreignId('plan_service_id')->nullable();

@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('diaryentries', function ($table) {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->integer('diarisable_id')->default(null);
             $table->string('diarisable_type', 191);
             $table->dateTime('diarydatetime');

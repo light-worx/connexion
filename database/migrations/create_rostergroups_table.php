@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('rostergroups', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->integer('roster_id');
             $table->integer('group_id');
             $table->integer('maxpeople');

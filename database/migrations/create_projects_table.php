@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('projects', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('project', 199);
             $table->string('slug', 199);
             $table->text('description');

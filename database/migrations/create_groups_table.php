@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('groups', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('groupname', 255);
             $table->string('slug', 255);
             $table->integer('meetingday')->nullable();

@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('pastors', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->integer('individual_id');
             $table->boolean('active')->nullable();
             $table->timestamp('created_at')->nullable();

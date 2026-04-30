@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('tags', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('name', 199);
             $table->string('slug', 199);
             $table->string('type', 199)->nullable();

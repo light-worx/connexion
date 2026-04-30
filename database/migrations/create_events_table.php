@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('events', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->text('event');
             $table->dateTime('eventdate');
             $table->integer('venue_id');

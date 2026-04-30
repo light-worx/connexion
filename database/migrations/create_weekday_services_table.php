@@ -8,7 +8,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('weekday_services', function ($table) {
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('name');
             $table->string('type')->default('fixed');
             $table->integer('month')->nullable();

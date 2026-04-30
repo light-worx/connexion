@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('group_individual', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->integer('group_id');
             $table->integer('individual_id');
             $table->json('categories')->nullable();

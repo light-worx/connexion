@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('services', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->date('servicedate');
             $table->string('servicetime', 191);
             $table->string('sermon_title', 191)->default(null);

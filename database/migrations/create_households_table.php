@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('households', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('address1', 255)->nullable();
             $table->string('address2', 255)->nullable();
             $table->string('address3', 255)->nullable();

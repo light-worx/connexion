@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('venues', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('venue', 255);
             $table->string('slug', 199);
             $table->text('description');

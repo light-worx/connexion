@@ -10,7 +10,7 @@ return new class extends Migration
         Schema::create('maintenancetasks', function($table)
         {
             $table->engine = 'InnoDB';
-            $table->increments('id')->unsigned();
+            $table->id();
             $table->string('details', 199);
             $table->integer('individual_id');
             $table->date('completed_at');
