@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Individual extends Model
 {
@@ -32,6 +33,16 @@ class Individual extends Model
         if ($attend){
             return date('d M Y',strtotime($attend->attendancedate)) . " (" . $attend->service . ")";
         }
+    }
+
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class,'group_individual')->withPivot('categories');
+    }
+
+    public function groupmember(): BelongsTo
+    {
+        return $this->belongsTo(Groupmember::class);
     }
 
 }

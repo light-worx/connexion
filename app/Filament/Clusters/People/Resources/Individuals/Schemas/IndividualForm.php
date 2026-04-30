@@ -157,7 +157,11 @@ class IndividualForm
                             ]),
                         Tab::make('Groups')
                             ->schema([
-                            ]),
+                                Select::make('groups')
+                                    ->columnSpanFull()
+                                    ->multiple()
+                                    ->relationship('groups','groupname'),
+                                    ]),
                         Tab::make('Admin')
                             ->schema([
                                 TextInput::make('memberstatus'),

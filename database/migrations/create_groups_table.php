@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('grouptype', 255)->default('service');
             $table->text('description')->nullable();
             $table->string('image', 255)->nullable();
-            $table->integer('individual_id');
+            $table->integer('individual_id')->nullable();
             $table->boolean('publish')->nullable();
             $table->timestamp('created_at')->nullable();
             $table->timestamp('updated_at')->nullable();
