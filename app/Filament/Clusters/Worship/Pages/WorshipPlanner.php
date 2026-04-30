@@ -51,6 +51,11 @@ class WorshipPlanner extends Page implements HasForms
         $this->loadPlans();
     }
 
+    public function getSubNavigation(): array
+    {
+        return [];
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -184,21 +189,6 @@ class WorshipPlanner extends Page implements HasForms
                 ->label('Bible Reading')
                 ->maxLength(255),
 
-            Select::make('person_id')
-                ->label('Preacher')
-                ->options(function () {
-                    $persons = Person::orderBy('firstname')->get();
-                    $options = array();
-                    foreach ($persons as $person) {
-                        if (in_array('Preacher', $person->role)) {
-                            $options[$person->id] = $person->firstname . ' ' . $person->surname;
-                        }
-                    }
-                    return $options;
-                })
-                ->searchable()
-                ->placeholder('Select a preacher'),
-
             Select::make('songs')
                 ->label('Song ideas')
                 ->multiple()
@@ -222,16 +212,15 @@ class WorshipPlanner extends Page implements HasForms
     protected function loadPlans(): void
     {
         $this->plans = ServicePlan::with([
-            'series',
-            'person',
-            'planServices.setitems.song',
-            'planServices.setitems.prayer',
-        ])
-        ->withCount(['services as services_count'])
-        ->whereYear('date', $this->year)
-        ->get()
-        ->keyBy(fn ($plan) => $plan->date->toDateString())
-        ->toArray();
+                'series',
+                'planServices.person',
+                'planServices.setitems',
+            ])
+            ->withCount(['services as services_count'])
+            ->whereYear('date', $this->year)
+            ->get()
+            ->keyBy(fn ($plan) => $plan->date->toDateString())
+            ->toArray();
     }
 
 
@@ -258,20 +247,6 @@ class WorshipPlanner extends Page implements HasForms
                     ->label('Bible Reading')
                     ->maxLength(255),
 
-                Select::make('person_id')
-                    ->label('Preacher')
-                    ->options(function () {
-                        $persons = Person::orderBy('firstname')->get();
-                        $options = array();
-                        foreach ($persons as $person) {
-                            if (in_array('Preacher', $person->role)) {
-                                $options[$person->id] = $person->firstname . ' ' . $person->surname;
-                            }
-                        }
-                        return $options;
-                    })
-                    ->searchable()
-                    ->placeholder('Select a preacher'),
                 Select::make('songs')
                     ->label('Song ideas')
                     ->multiple()
@@ -305,12 +280,21 @@ class WorshipPlanner extends Page implements HasForms
                     ->deletable(false)
                     ->itemLabel(fn (array $state) => $state['time'] ?? 'Service')
                     ->schema([
+                        Select::make('person_id')
+                            ->label('Preacher')
+                            ->options(fn () =>
+                                Person::orderBy('firstname')
+                                    ->get()
+                                    ->mapWithKeys(fn ($p) => [
+                                        $p->id => $p->firstname . ' ' . $p->surname
+                                    ])
+                            )
+                            ->searchable(),
                         Select::make('time')
                             ->label('Service time')
                             ->options(collect(setting('services'))->mapWithKeys(fn ($t) => [$t => $t]))
                             ->required()
                             ->disableOptionsWhenSelectedInSiblingRepeaterItems(), // prevents duplicates
-
                         Select::make('songs')
                             ->label('Songs')
                             ->multiple()
@@ -318,7 +302,6 @@ class WorshipPlanner extends Page implements HasForms
                             ->options(
                                 Song::orderBy('title')->pluck('title', 'id')
                             ),
-
                         Select::make('prayers')
                             ->label('Liturgy')
                             ->multiple()
@@ -330,41 +313,46 @@ class WorshipPlanner extends Page implements HasForms
                     ->addActionLabel('Add service')
             ])
             ->mountUsing(function (Schema $form) {
-                $plan = ServicePlan::with('planServices.setitems')
-                    ->where('date', $this->selectedDate)
-                    ->first();
+                $plan = ServicePlan::firstOrCreate([
+                    'date' => $this->selectedDate,
+                ]);
 
-                $external = app(PreachingPlanService::class)->getPreacher($this->selectedDate, setting('services')[0]);
+                $services = setting('services') ?? [];
+                $planServicesData = [];
+
+                foreach ($services as $time) {
+                    $planService = $plan->planServices()->firstOrCreate([
+                        'time' => $time,
+                    ]);
+
+                    // Only attempt auto-fill if not already set
+                    if (!$planService->person_id) {
+                        $external = app(PreachingPlanService::class)
+                            ->getPreacher($this->selectedDate, $time);
+                        if ($external) {
+                            $localPersonId = Person::where('external_id', $external)->value('id');
+
+                            if ($localPersonId) {
+                                $planService->update([
+                                    'person_id' => $localPersonId,
+                                ]);
+                            }
+                        }
+                    }
+
+                    $planServicesData[] = [
+                        'time'      => $planService->time,
+                        'person_id' => $planService->person_id,
+                        'songs'     => $planService->songSetitems()->pluck('content_id')->toArray(),
+                        'prayers'   => $planService->prayerSetitems()->pluck('content_id')->toArray(),
+                    ];
+                }
 
                 $form->fill([
-                    'series_id' => $plan?->series_id,
-                    'details'   => $plan?->details,
-                    'reading'   => $plan?->reading,
-                    'person_id' => $plan?->person_id,
-
-                    'plan_services' => $plan
-                        ? $plan->planServices->map(function ($service) {
-                            return [
-                                'time' => $service->time,
-
-                                'songs' => $service->setitems
-                                    ->where('content_type', 'song')
-                                    ->pluck('content_id')
-                                    ->toArray(),
-
-                                'prayers' => $service->setitems
-                                    ->where('content_type', 'prayer')
-                                    ->pluck('content_id')
-                                    ->toArray(),
-                            ];
-                        })->toArray()
-
-                        // fallback: prepopulate from settings
-                        : collect(setting('services'))->map(fn ($time) => [
-                            'time' => $time,
-                            'songs' => [],
-                            'prayers' => [],
-                        ])->toArray(),
+                    'series_id' => $plan->series_id,
+                    'details'   => $plan->details,
+                    'reading'   => $plan->reading,
+                    'plan_services' => $planServicesData,
                 ]);
             })
             ->action(function (array $data) {
@@ -382,12 +370,13 @@ class WorshipPlanner extends Page implements HasForms
                 $plan->planServices()->delete();
 
                 foreach ($data['plan_services'] ?? [] as $serviceData) {
-                    $service = $plan->planServices()->create([
-                        'time' => $serviceData['time'],
-                    ]);
-
+                    $service = $plan->planServices()->updateOrCreate(
+                        ['time' => $serviceData['time']],
+                        [
+                            'person_id' => $serviceData['person_id'] ?? null,
+                        ]
+                    );
                     $order = 1;
-
                     foreach ($serviceData['songs'] ?? [] as $songId) {
                         $service->setitems()->create([
                             'content_type' => 'song',
@@ -395,7 +384,6 @@ class WorshipPlanner extends Page implements HasForms
                             'sort_order'   => $order++,
                         ]);
                     }
-
                     foreach ($serviceData['prayers'] ?? [] as $prayerId) {
                         $service->setitems()->create([
                             'content_type' => 'prayer',

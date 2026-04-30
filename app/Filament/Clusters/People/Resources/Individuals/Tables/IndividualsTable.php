@@ -5,9 +5,9 @@ namespace App\Filament\Clusters\People\Resources\Individuals\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Ysfkaya\FilamentPhoneInput\Tables\PhoneColumn;
 
 class IndividualsTable
 {
@@ -20,9 +20,7 @@ class IndividualsTable
                 TextColumn::make('firstname')
                     ->label('First name')
                     ->searchable(),
-                TextColumn::make('household.addressee')
-                    ->searchable(),
-                TextColumn::make('cellphone')
+                PhoneColumn::make('cellphone')
                     ->searchable()
             ])
             ->filters([

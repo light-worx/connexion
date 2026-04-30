@@ -6,19 +6,13 @@ use Illuminate\Support\Facades\Http;
 
 class PreachingPlanService
 {
-    // https://methodist.church.net.za/preacher/697/09h00/2026-05-03
-    public function getPreacher(string $date, string $time): ?array
+    public function getPreacher(string $date, string $time): ?int
     {
-        $response = Http::get('https://methodist.church.net.za/preacherid/', [
-            'society' => setting('society_id'),
-            'date' => $date,
-            'time' => $time,
-        ]);
-
+        $url = 'https://methodist.church.net.za/preacherid/' . setting('society_id') . '/' . $time . '/' . $date;
+        $response = Http::get($url);      
         if (!$response->successful()) {
             return null;
         }
-
         return $response->json();
     }
 }

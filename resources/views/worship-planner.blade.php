@@ -19,7 +19,7 @@
     @endphp
 
     {{-- Grid --}}
-    <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <div class="grid gap-6 md:grid-cols-2">
         @foreach ($daysByMonth as $month => $days)
             <x-filament::section>
                 <x-slot name="heading">
@@ -31,7 +31,20 @@
                         @php
                             $key  = $day['key'];
                             $date = \Carbon\Carbon::parse($key);
-                            $plan = $this->plans[$key] ?? null;
+                            $plan = $plans[$key] ?? null;
+                            $initials = collect($plan['plan_services'] ?? [])
+                                ->map(function ($service) {
+                                    if (!empty($service['person'])) {
+                                        return strtoupper(
+                                            substr($service['person']['firstname'], 0, 1) .
+                                            substr($service['person']['surname'], 0, 1)
+                                        );
+                                    }
+                                    return null;
+                                })
+                                ->filter()
+                                ->unique()
+                                ->values();
                         @endphp
 
                         <div
@@ -40,14 +53,22 @@
                             wire:click="$set('selectedDate', '{{ $key }}'); $wire.mountAction('editPlan')"
                         >
                             {{-- Date + badge --}}
-                            <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                                <span>{{ $date->format('j M') }}</span>
+                            <div class="flex items-center justify-between">
+                                <div class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                    {{ $date->format('j M') }}
+                                </div>
 
                                 @if ($day['type'] === 'special')
                                     <span class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800
                                                  dark:bg-amber-900 dark:text-amber-200">
                                         {{ $day['label'] }}
                                     </span>
+                                @endif
+
+                                @if ($initials->count())
+                                    <div class="text-xs font-semibold text-primary-600 dark:text-primary-400">
+                                        {{ $initials->join(', ') }}
+                                    </div>
                                 @endif
                             </div>
 
@@ -72,12 +93,6 @@
                                     @if ($plan['details'])
                                         <i>{{ $plan['details'] }}</i><br>
                                     @endif
-
-                                    @if ($plan['person'])
-                                        <strong>Preacher:</strong>
-                                        {{ $plan['person']['firstname'] }} {{ $plan['person']['surname'] }}
-                                    @endif
-
                                     @if ($plan['reading'])
                                         <div>
                                             <strong>Reading:</strong> {{ $plan['reading'] }}

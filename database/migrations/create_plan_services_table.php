@@ -10,8 +10,11 @@ return new class extends Migration
         Schema::create('plan_services', function ($table) {
             $table->id();
             $table->foreignId('service_plan_id')->constrained()->cascadeOnDelete();
-            $table->string('time')->nullable();
+            $table->string('time');
+            $table->foreignId('person_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
+            $table->unique(['service_plan_id', 'time']);
         });
     }
 
