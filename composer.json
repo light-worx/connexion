@@ -17,6 +17,8 @@
         "light-worx/filament-pwa": "dev-master",
         "light-worx/filament-reports": "dev-master",
         "light-worx/filament-settings": "dev-master",
+        "light-worx/tasks-api-client": "dev-master",
+        "light-worx/filament-tasks": "dev-master",
         "spatie/laravel-honeypot": "^4.7",
         "ysfkaya/filament-phone-input": "^4.1"
     },

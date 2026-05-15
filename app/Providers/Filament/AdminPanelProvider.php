@@ -15,12 +15,13 @@ use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Lightworx\FilamentReports\FilamentReportsPlugin;
 use Lightworx\FilamentSettings\FilamentSettingsPlugin;
+use Lightworx\FilamentTasks\FilamentTasksPlugin;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -53,7 +54,7 @@ class AdminPanelProvider extends PanelProvider
                 StartSession::class,
                 AuthenticateSession::class,
                 ShareErrorsFromSession::class,
-                VerifyCsrfToken::class,
+                PreventRequestForgery::class,
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
@@ -61,7 +62,8 @@ class AdminPanelProvider extends PanelProvider
             ->plugins([
                 FilamentShieldPlugin::make(),
                 FilamentReportsPlugin::make(),
-                FilamentSettingsPlugin::make()
+                FilamentSettingsPlugin::make(),
+                FilamentTasksPlugin::make()
             ])
             ->authMiddleware([
                 Authenticate::class,
