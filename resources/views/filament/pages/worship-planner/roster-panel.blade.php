@@ -1,13 +1,34 @@
 {{--
     filament/pages/worship-planner/roster-panel.blade.php
     Variables: $plan (WorshipPlan)
+
+    Only shows rostergroups configured in worship_planner_roster settings
+    for this service time. Falls back to showing all if no settings saved.
 --}}
 @php
-    $rosterItems = $plan->rosterItems();
+    $rosterSettings   = setting('worship_planner_roster') ?? [];
+    $timeSettings     = $rosterSettings[$plan->service_time] ?? [];
+    $allowedGroupIds  = $timeSettings['rostergroup_ids'] ?? [];
+    $configuredRoster = $timeSettings['roster_id'] ?? null;
 
-    // Resolve the roster index route safely — update the string below
-    // to match your actual roster resource route name.
-    // Run: php artisan route:list | grep -i roster
+    // Query rosteritems for this date + service time
+    $date = $plan->sundayGroup->service_date->toDateString();
+
+    $query = \App\Models\Rosteritem::whereHas('rosterGroup.roster', fn ($q) =>
+            $q->where('sundayservice', $plan->service_time)
+        )
+        ->where('rosterdate', $date)
+        ->with(['rosterGroup.group', 'individuals']);
+
+    // Filter to only configured rostergroups if settings have been saved
+    if (! empty($allowedGroupIds)) {
+        $query->whereHas('rosterGroup', fn ($q) =>
+            $q->whereIn('id', $allowedGroupIds)
+        );
+    }
+
+    $rosterItems = $query->get();
+
     $rosterUrl = \Illuminate\Support\Facades\Route::has('filament.admin.people.resources.rosters.index')
         ? route('filament.admin.people.resources.rosters.index')
         : null;
@@ -49,12 +70,22 @@
 @else
     <div class="text-center py-10">
         <x-heroicon-o-user-group class="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">No roster assignments found</p>
-        <p class="text-xs text-gray-400 max-w-xs mx-auto">
-            Assignments for the {{ $plan->service_time }} service on
-            {{ $plan->sundayGroup->service_date->format('j M Y') }}
-            will appear here once set in the roster.
-        </p>
+
+        @if (empty($allowedGroupIds))
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">No roster groups configured</p>
+            <p class="text-xs text-gray-400 max-w-xs mx-auto">
+                Use the <strong>Roster Settings</strong> button in the page header to choose
+                which rostergroups to display for the {{ $plan->service_time }} service.
+            </p>
+        @else
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">No roster assignments found</p>
+            <p class="text-xs text-gray-400 max-w-xs mx-auto">
+                Assignments for the {{ $plan->service_time }} service on
+                {{ $plan->sundayGroup->service_date->format('j M Y') }}
+                will appear here once set in the roster.
+            </p>
+        @endif
+
         @if ($rosterUrl)
             <a href="{{ $rosterUrl }}" target="_blank"
                 class="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-800 font-medium mt-4">

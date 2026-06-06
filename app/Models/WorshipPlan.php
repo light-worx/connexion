@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class WorshipPlan extends Model
 {
     protected $fillable = [
         'worship_sunday_group_id',
         'service_time',
+        'service_type',
         'override_preacher_name',
         'override_preacher_api_id',
         'override_series_id',
@@ -68,16 +70,14 @@ class WorshipPlan extends Model
     protected function effectiveSeries(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->overrideSeries
-                ?? $this->sundayGroup?->series,
+            get: fn () => $this->overrideSeries ?? $this->sundayGroup?->series,
         );
     }
 
     protected function effectiveBibleReading(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->override_bible_reading
-                ?? $this->sundayGroup?->bible_reading,
+            get: fn () => $this->override_bible_reading ?? $this->sundayGroup?->bible_reading,
         );
     }
 
@@ -131,10 +131,10 @@ class WorshipPlan extends Model
      */
     public function publish(): void
     {
-        \DB::transaction(function () {
+        DB::transaction(function () {
             $this->confirmedItems
                 ->each(function (WorshipPlanItem $item, int $index) {
-                    ServiceItem::create([
+                    Setitem::create([
                         'service_id'    => $this->getOrCreateServiceId(),
                         'itemable_type' => $item->itemable_type,
                         'itemable_id'   => $item->itemable_id,

@@ -24,10 +24,11 @@ class WorshipSundayGroup extends Model
     ];
 
     protected $casts = [
-        'service_date'      => 'date',
-        'is_special_service'=> 'boolean',
-        'api_synced_at'     => 'datetime',
-        'api_raw'           => 'array',
+        'service_date'       => 'date',
+        'is_special_service' => 'boolean',
+        'api_synced_at'      => 'datetime',
+        'api_raw'            => 'array',
+        'custom_times'       => 'array',
     ];
 
     // ── Relationships ────────────────────────────────────────────────────────

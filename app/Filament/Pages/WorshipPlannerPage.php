@@ -8,11 +8,18 @@ use App\Models\WorshipPlanItem;
 use App\Models\Series;
 use App\Models\Song;
 use App\Models\Prayer;
+use App\Models\Roster;
+use App\Models\Rostergroup;
+use App\Models\Setitem;
+use App\Models\Service as ChurchService;
 use App\Services\WorshipPlannerService;
+use Lightworx\FilamentSettings\Models\FilamentSetting;
 use BackedEnum;
 use UnitEnum;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -37,7 +44,8 @@ class WorshipPlannerPage extends Page
     #[Url(as: 'year')]
     public int $year;
 
-    public ?int $editingPlanId = null;
+    public ?int $editingPlanId   = null;
+    public ?int $finalisePlanId  = null;
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -116,6 +124,12 @@ class WorshipPlannerPage extends Page
         $this->mountAction('editPlan');
     }
 
+    public function finalisePlanDirect(int $planId): void
+    {
+        $this->finalisePlanId = $planId;
+        $this->mountAction('finalisePlan');
+    }
+
     protected function getEditingPlan(): ?WorshipPlan
     {
         if (! $this->editingPlanId) return null;
@@ -132,19 +146,34 @@ class WorshipPlannerPage extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('plannerSettings')
+                ->label('Roster Settings')
+                ->icon('heroicon-o-cog-6-tooth')
+                ->color('gray')
+                ->modalHeading('Worship Planner — Roster Settings')
+                ->modalDescription('For each service time, choose which roster to use and which rostergroups to display on the plan.')
+                ->modalWidth('2xl')
+                ->modalSubmitActionLabel('Save Settings')
+                ->form($this->getRosterSettingsForm())
+                ->action(fn (array $data) => $this->saveRosterSettings($data)),
+
             Action::make('resync')
-                ->label('Re-sync preachers from API')
+                ->label('Re-sync from API')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->requiresConfirmation()
-                ->modalHeading('Re-sync ' . $this->year . ' preachers?')
-                ->modalDescription('This will refresh preacher names from the external API for all Sundays in ' . $this->year . '.')
+                ->modalHeading('Re-sync ' . $this->year . ' from API?')
+                ->modalDescription('Refreshes preacher names, service types and midweek dates from the external API.')
                 ->action(function (WorshipPlannerService $service) {
-                    $service->resyncPreachers($this->year);
-                    Notification::make()->title('Preachers re-synced')->success()->send();
+                    $updated = $service->resyncPreachers($this->year);
+                    Notification::make()
+                        ->title('Re-sync complete')
+                        ->body("{$updated} service slots updated.")
+                        ->success()->send();
                 }),
 
             $this->getEditPlanAction(),
+            $this->getFinalisePlanAction(),
         ];
     }
 
@@ -156,8 +185,20 @@ class WorshipPlannerPage extends Page
                 : 'Edit Service'
             )
             ->modalWidth('2xl')
-            ->modalSubmitAction(false)
+            ->modalSubmitActionLabel('Save Details')
             ->modalCancelActionLabel('Close')
+            ->extraModalFooterActions([
+                Action::make('finalise')
+                    ->label('Finalise Order of Service')
+                    ->color('success')
+                    ->icon('heroicon-s-check-badge')
+                    ->requiresConfirmation()
+                    ->modalHeading('Finalise this service?')
+                    ->modalDescription('Confirmed items will be published to the order of service. This should only be done once the plan is complete.')
+                    ->action(function () {
+                        $this->mountAction('finalisePlan');
+                    }),
+            ])
             ->form(function (): array {
                 $plan  = $this->getEditingPlan();
                 $group = $plan?->sundayGroup;
@@ -250,6 +291,134 @@ class WorshipPlannerPage extends Page
                     $this->saveDetails($plan, $group, $data);
                 }
             });
+    }
+
+    protected function getFinalisePlanAction(): Action
+    {
+        return Action::make('finalisePlan')
+            ->label(function () {
+                $plan = $this->getFinalisingPlan();
+                return $plan
+                    ? 'Finalise ' . $plan->service_time . ' — ' . $plan->sundayGroup->service_date->format('j M Y')
+                    : 'Finalise Service';
+            })
+            ->modalHeading(function () {
+                $plan = $this->getFinalisingPlan();
+                return $plan
+                    ? 'Finalise ' . $plan->service_time . ' on ' . $plan->sundayGroup->service_date->format('j F Y') . '?'
+                    : 'Finalise Order of Service';
+            })
+            ->modalDescription('Confirmed items will be published to the order of service. This should only be done once the plan is complete.')
+            ->modalSubmitActionLabel('Yes, Finalise')
+            ->color('success')
+            ->requiresConfirmation()
+            ->action(function () {
+                $plan = $this->getFinalisingPlan();
+                if (! $plan) return;
+
+                \DB::transaction(function () use ($plan) {
+                    $group = $plan->sundayGroup;
+
+                    $service = ChurchService::firstOrCreate(
+                        [
+                            'servicedate' => $group->service_date->format('Y-m-d'),
+                            'servicetime' => $plan->service_time,
+                        ],
+                        [
+                            'series_id' => $plan->effective_series?->id,
+                            'person_id' => $group->preacher_person_id,
+                            'reading'   => $plan->effective_bible_reading,
+                        ]
+                    );
+
+                    $service->update([
+                        'series_id' => $plan->effective_series?->id,
+                        'person_id' => $group->preacher_person_id,
+                        'reading'   => $plan->effective_bible_reading,
+                    ]);
+
+                    Setitem::where('service_id', $service->id)->delete();
+
+                    $plan->confirmedItems()
+                        ->with('itemable')
+                        ->get()
+                        ->each(function (WorshipPlanItem $item, int $index) use ($service) {
+                            Setitem::create([
+                                'service_id'   => $service->id,
+                                'content_type' => $item->isSong() ? 'song' : 'prayer',
+                                'content_id'   => $item->itemable_id,
+                                'position'     => $item->position ?? $index + 1,
+                            ]);
+                        });
+
+                    $plan->update(['status' => 'published', 'published_at' => now()]);
+                });
+
+                $this->finalisePlanId = null;
+
+                Notification::make()
+                    ->title('Service finalised')
+                    ->body('Order of service has been published.')
+                    ->success()->send();
+            });
+    }
+
+    protected function getFinalisingPlan(): ?WorshipPlan
+    {
+        $id = $this->finalisePlanId ?? $this->editingPlanId;
+        if (! $id) return null;
+        return WorshipPlan::with(['sundayGroup.series', 'overrideSeries'])->find($id);
+    }
+
+    // ── Roster Settings form ─────────────────────────────────────────────────
+
+    protected function getRosterSettingsForm(): array
+    {
+        $serviceTimes = collect(setting('services') ?? []);
+        $current      = setting('worship_planner_roster') ?? [];
+
+        return $serviceTimes->map(function (string $time) use ($current) {
+            $saved     = $current[$time] ?? [];
+            $rosterId  = $saved['roster_id'] ?? null;
+
+            return \Filament\Schemas\Components\Section::make($time)
+                ->schema([
+                    Select::make("times.{$time}.roster_id")
+                        ->label('Roster')
+                        ->options(Roster::orderBy('roster')->pluck('roster', 'id'))
+                        ->default($rosterId)
+                        ->live()
+                        ->afterStateUpdated(fn () => null),
+
+                    CheckboxList::make("times.{$time}.rostergroup_ids")
+                        ->label('Rostergroups to display on plan')
+                        ->options(function (Get $get) use ($time) {
+                            $id = $get("times.{$time}.roster_id");
+                            if (! $id) return [];
+
+                            return \App\Models\Rostergroup::where('roster_id', $id)
+                                ->with('group')
+                                ->get()
+                                ->mapWithKeys(fn ($rg) => [$rg->id => $rg->group->name ?? "Group {$rg->id}"])
+                                ->toArray();
+                        })
+                        ->default($saved['rostergroup_ids'] ?? [])
+                        ->columns(2),
+                ])
+                ->columnSpanFull();
+        })->toArray();
+    }
+
+    protected function saveRosterSettings(array $data): void
+    {
+        FilamentSetting::updateOrCreate(
+            ['key' => 'worship_planner_roster'],
+            ['value' => json_encode($data['times'] ?? []), 'setting_type' => 'text']
+        );
+
+        Notification::make()
+            ->title('Roster settings saved')
+            ->success()->send();
     }
 
     // ── Save helpers ─────────────────────────────────────────────────────────

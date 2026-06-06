@@ -35,17 +35,16 @@ return new class extends Migration
 
             // ── Time slot ─────────────────────────────────────────────────────
             $table->string('service_time');
+            $table->string('service_type', 20)->nullable();
 
             // ── Override columns (null = inherit from group) ──────────────────
             $table->string('override_preacher_name')->nullable()
                   ->comment('Set only when this slot has a different preacher than the group default.');
             $table->string('override_preacher_api_id')->nullable();
 
-            $table->unsignedInteger('override_series_id')->nullable();
-            $table->foreign('override_series_id')->references('id')->on('series')->nullOnDelete();
+            $table->foreignId('override_series_id')->nullable()->constrained('series')->nullOnDelete();
 
-            $table->string('override_bible_reading')->nullable()
-                  ->comment('Set only when this slot uses a different passage than the group default.');
+            $table->string('override_bible_reading')->nullable();
 
             // ── Status ────────────────────────────────────────────────────────
             $table->enum('status', ['draft', 'confirmed', 'published'])->default('draft');
@@ -54,6 +53,7 @@ return new class extends Migration
 
             // ── Notes ─────────────────────────────────────────────────────────
             $table->text('notes')->nullable();
+            
 
             $table->timestamps();
 

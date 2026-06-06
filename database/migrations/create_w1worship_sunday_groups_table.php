@@ -28,15 +28,16 @@ return new class extends Migration
                   ->comment('Human-readable label, e.g. "Good Friday" or "Christmas Day". Null for regular Sundays.');
             $table->boolean('is_special_service')->default(false)
                   ->comment('True for midweek / non-Sunday services sourced from the external API.');
+            $table->json('custom_times')->nullable();
 
             // ── Shared defaults (sourced from the external API, cached locally) ─
-            $table->string('preacher_name')->nullable()
-                  ->comment('Cached from external API. Overridable per time-slot in worship_plans.');
+            $table->string('preacher_name')->nullable();
+            $table->unsignedInteger('preacher_person_id')->nullable();
             $table->string('preacher_api_id')->nullable()
                   ->comment('The external API identifier for the preacher, for re-syncing.');
-
-            $table->unsignedInteger('series_id')->nullable();
-            $table->foreign('series_id')->references('id')->on('series')->nullOnDelete();
+            $table->foreignId('series_id')
+                  ->constrained('series')
+                  ->cascadeOnDelete()->nullable();
             $table->string('bible_reading')->nullable()
                   ->comment('Primary Bible passage, e.g. "Romans 8:1-17". Overridable per time-slot.');
 
