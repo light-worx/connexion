@@ -102,7 +102,7 @@ class WorshipPlan extends Model
         $date        = $this->sundayGroup->service_date->toDateString();
         $serviceTime = $this->service_time; // e.g. "07h30"
 
-        return RosterItem::whereHas('rosterGroup.roster', function ($q) use ($serviceTime) {
+        return Rosteritem::whereHas('rosterGroup.roster', function ($q) use ($serviceTime) {
                 $q->where('sundayservice', $serviceTime);
             })
             ->where('rosterdate', $date)

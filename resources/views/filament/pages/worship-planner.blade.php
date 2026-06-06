@@ -25,7 +25,7 @@
         />
     </div>
 
-    {{-- ── Empty state — records being generated or genuinely empty ──── --}}
+    {{-- ── Empty state ──────────────────────────────────────────────── --}}
     @if ($this->months->isEmpty())
         <div class="flex flex-col items-center justify-center py-24 text-center">
             <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
@@ -67,13 +67,6 @@
                     </div>
                 </div>
             @endforeach
-        </div>
-    @endif
-
-    {{-- ── Plan Editor Slide-over ──────────────────────────────────── --}}
-    @if ($showPlanEditor && $editingPlanId)
-        <div x-on:plan-editor-closed.window="$wire.closePlanEditor()">
-            @livewire('worship-plan-editor', ['planId' => $editingPlanId], key('editor-' . $editingPlanId))
         </div>
     @endif
 

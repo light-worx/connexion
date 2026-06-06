@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Helpers\InstallationHelper;
 use App\Livewire\ServicePlanner;
+use App\Livewire\WorshipPlanRosterPreview;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
@@ -35,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
         } else {
             Config::set('app.name','Connexion');
         }
-        Livewire::component('service-planner', ServicePlanner::class); 
+        //Livewire::component('service-planner', ServicePlanner::class); 
+        Livewire::component('worship-plan-roster-preview', WorshipPlanRosterPreview::class);
     }
 }

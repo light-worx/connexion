@@ -34,16 +34,15 @@ return new class extends Migration
                   ->cascadeOnDelete();
 
             // ── Time slot ─────────────────────────────────────────────────────
-            $table->time('service_time')
-                  ->comment('e.g. 07:30, 09:00, 18:30 — sourced from system settings at generation time.');
+            $table->string('service_time');
 
             // ── Override columns (null = inherit from group) ──────────────────
             $table->string('override_preacher_name')->nullable()
                   ->comment('Set only when this slot has a different preacher than the group default.');
             $table->string('override_preacher_api_id')->nullable();
 
-            $table->foreignId('override_series_id')->nullable()->constrained('series')->nullOnDelete()
-                  ->comment('Set only when this slot belongs to a different series than the group default.');
+            $table->unsignedInteger('override_series_id')->nullable();
+            $table->foreign('override_series_id')->references('id')->on('series')->nullOnDelete();
 
             $table->string('override_bible_reading')->nullable()
                   ->comment('Set only when this slot uses a different passage than the group default.');

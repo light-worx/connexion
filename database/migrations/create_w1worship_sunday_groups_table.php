@@ -35,8 +35,8 @@ return new class extends Migration
             $table->string('preacher_api_id')->nullable()
                   ->comment('The external API identifier for the preacher, for re-syncing.');
 
-            $table->foreignId('series_id')->nullable()->constrained('series')->nullOnDelete()
-                  ->comment('Sermon series assigned to this date. Overridable per time-slot.');
+            $table->unsignedInteger('series_id')->nullable();
+            $table->foreign('series_id')->references('id')->on('series')->nullOnDelete();
             $table->string('bible_reading')->nullable()
                   ->comment('Primary Bible passage, e.g. "Romans 8:1-17". Overridable per time-slot.');
 
