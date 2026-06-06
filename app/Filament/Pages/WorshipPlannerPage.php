@@ -44,8 +44,7 @@ class WorshipPlannerPage extends Page
     #[Url(as: 'year')]
     public int $year;
 
-    public ?int $editingPlanId   = null;
-    public ?int $finalisePlanId  = null;
+    public ?int $editingPlanId  = null;
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -124,12 +123,6 @@ class WorshipPlannerPage extends Page
         $this->mountAction('editPlan');
     }
 
-    public function finalisePlanDirect(int $planId): void
-    {
-        $this->finalisePlanId = $planId;
-        $this->mountAction('finalisePlan');
-    }
-
     protected function getEditingPlan(): ?WorshipPlan
     {
         if (! $this->editingPlanId) return null;
@@ -172,8 +165,9 @@ class WorshipPlannerPage extends Page
                         ->success()->send();
                 }),
 
-            $this->getEditPlanAction(),
-            $this->getFinalisePlanAction(),
+            // Triggered from cards via mountAction() — visually hidden but fully registered.
+            $this->getEditPlanAction()->extraAttributes(['class' => 'hidden', 'style' => 'display:none']),
+            $this->getFinalisePlanAction()->extraAttributes(['class' => 'hidden', 'style' => 'display:none']),
         ];
     }
 
@@ -354,7 +348,7 @@ class WorshipPlannerPage extends Page
                     $plan->update(['status' => 'published', 'published_at' => now()]);
                 });
 
-                $this->finalisePlanId = null;
+                $this->editingPlanId = null;
 
                 Notification::make()
                     ->title('Service finalised')
@@ -365,9 +359,8 @@ class WorshipPlannerPage extends Page
 
     protected function getFinalisingPlan(): ?WorshipPlan
     {
-        $id = $this->finalisePlanId ?? $this->editingPlanId;
-        if (! $id) return null;
-        return WorshipPlan::with(['sundayGroup.series', 'overrideSeries'])->find($id);
+        if (! $this->editingPlanId) return null;
+        return WorshipPlan::with(['sundayGroup.series', 'overrideSeries'])->find($this->editingPlanId);
     }
 
     // ── Roster Settings form ─────────────────────────────────────────────────
