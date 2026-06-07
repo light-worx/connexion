@@ -38,7 +38,7 @@ class WorshipPlanReport extends BaseReport
 
     public function generate(): void
     {
-        $this->setReportTitle('Worship Plan ' . $this->year);
+        $this->setReportTitle(setting('church_name') . ' - Worship Plan ' . $this->year);
         $this->AddPage('P');
 
         $groups = WorshipSundayGroup::forYear($this->year)
