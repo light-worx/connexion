@@ -4,116 +4,112 @@ namespace App\Reports;
 
 use Illuminate\Support\Facades\Route;
 use Lightworx\FilamentReports\Reports\BaseReport;
-use App\Models\ServicePlan;
+use Lightworx\FilamentReports\Reports\Concerns\HasSections;
+use Lightworx\FilamentReports\Reports\Concerns\HasTables;
+use App\Models\WorshipSundayGroup;
 
 class WorshipPlanReport extends BaseReport
 {
+    use HasSections, HasTables;
+
     protected int $year;
-    protected $plans;
 
     public function __construct()
     {
         parent::__construct();
+        $this->config['footer']['enabled']     = false;
+        $this->config['page']['orientation']   = 'P';  // L = Landscape, P = Portrait
+        $this->config['page']['format']        = 'A4';
     }
 
     public static function routes(): void
     {
-        Route::get('/admin/worship/reports/worshipplan/{year}', function (int $year) {
-            $plans = ServicePlan::with([
-                    'series',
-                    'person',
-                    'midweekservices',
-                    'setitems.song',
-                    'setitems.prayer',
-                ])
-                ->whereYear('date', $year)
-                ->orderBy('date')
-                ->get();
-
-            return (new static())
-                ->setYear($year)
-                ->setPlans($plans)
-                ->handle();
-        })->name('reports.worshipplan');
+        Route::get('/admin/worship/reports/plan/{year}', function (int $year) {
+            return (new static())->setYear($year)->handle();
+        })->name('reports.worship-plan')
+          ->middleware(['web', 'auth']);
     }
 
-    public function setYear($year): static
+    public function setYear(int $year): static
     {
         $this->year = $year;
         return $this;
     }
 
-    public function setPlans($plans): static
-    {
-        $this->plans = $plans;
-        return $this;
-    }
-
-    public function Header(): void
-    {
-        $this->SetFont('Arial', 'B', 12);
-        $this->Cell(0, 8, "Worship Plan: {$this->year}", 0, 1, 'C');
-        $this->Ln(2);
-    }
-
-    public function Footer(): void
-    {
-        $this->SetY(-10);
-        $this->SetFont('Arial', '', 8);
-        $this->Cell(0, 8, 'Page ' . $this->PageNo(), 0, 0, 'C');
-    }
-
-
     public function generate(): void
     {
-        $this->setReportTitle("Worship Plan " . $this->year);
-        $this->AddPage('L');
-        $this->SetFont('Arial', '', 9);
+        $this->setReportTitle('Worship Plan ' . $this->year);
+        $this->AddPage('P');
 
-        $this->renderTableHeader();
+        $groups = WorshipSundayGroup::forYear($this->year)
+            ->with(['series', 'plans.overrideSeries'])
+            ->orderBy('service_date')
+            ->get();
 
-        foreach ($this->plans as $plan) {
-            $this->renderRow($plan);
+        if ($groups->isEmpty()) {
+            $this->renderText('No services found for ' . $this->year . '.');
+            return;
         }
 
-        $this->Output('I', $this->getFilename());
-        exit;
-    }
+        $rows = [];
 
-    protected function renderTableHeader(): void
-    {
-        $this->SetFont('Arial', 'B', 9);
-        $this->SetFillColor(240);
+        foreach ($groups as $group) {
+            $plans = $group->plans->sortBy('service_time');
 
-        $this->Cell(22, 6, 'Date', 1, 0, 'L', true);
-        $this->Cell(60, 6, 'Series', 1, 0, 'L', true);
-        $this->Cell(45, 6, 'Preacher', 1, 0, 'L', true);
-        $this->Cell(140, 6, 'Bible reading', 1, 1, 'L', true);
+            if ($plans->isEmpty()) {
+                continue;
+            }
 
-        $this->SetFont('Arial', '', 9);
-    }
+            // Resolve effective values per plan
+            $resolved = $plans->map(fn ($plan) => [
+                'time'     => $plan->service_time,
+                'series'   => $plan->overrideSeries?->series ?? $group->series?->series ?? '',
+                'preacher' => $plan->override_preacher_name ?? $group->preacher_name ?? '',
+                'reading'  => $plan->override_bible_reading ?? $group->bible_reading ?? '',
+            ]);
 
-    protected function renderRow($plan): void
-    {
-        if ($this->GetY() > 185) {
-            $this->AddPage('L');
-            $this->renderTableHeader();
+            // Date label
+            $date = $group->service_date->format('j M');
+
+            // Check if all slots share the same preacher, reading and series
+            $allSame = $resolved->unique(fn ($r) => $r['preacher'] . '|' . $r['reading'] . '|' . $r['series'])->count() === 1;
+
+            if ($allSame) {
+                // Collapse into one row — no time needed
+                $first = $resolved->first();
+                $series = $first['series'] ?: '';
+                if ($group->is_special_service && $group->display_name) {
+                    $series .= " " . $group->display_name;
+                }
+                $rows[] = [
+                    $date,
+                    $series,
+                    $first['preacher'] ?: '',
+                    $first['reading']  ?: '',
+                ];
+            } else {
+                // Different details per slot — show time in the date cell
+                foreach ($resolved as $slot) {
+                    $rows[] = [
+                        $date ? "{$date}\n{$slot['time']}" : $slot['time'],
+                        $slot['series']   ?: '',
+                        $slot['preacher'] ?: '',
+                        $slot['reading']  ?: '',
+                    ];
+                    $date = '';
+                }
+            }
         }
 
-        $label = $plan->midweekService?->name
-            ? $plan->date->format('j M') . ' — ' . $plan->midweekService->name
-            : $plan->date->format('j M');
-
-        $this->Cell(22, 5, $label, 1);
-        $this->Cell(60, 5, $plan->series->series ?? '', 1);
-        $this->Cell(45, 5, $plan->person->fullname ?? '', 1);
-        $this->Cell(140, 5, $plan->reading ?? '', 1);
-
-        $this->Ln();
+        $this->renderTable(
+            headers: ['Date', 'Series', 'Preacher', 'Reading'],
+            rows: $rows,
+            columnWidths: [25, 50, 35, 70]
+        );
     }
 
     protected function getFilename(): string
     {
-        return 'worshipplan-report-' . now()->format('Y-m-d') . '.pdf';
+        return 'worship-plan-' . $this->year . '.pdf';
     }
 }

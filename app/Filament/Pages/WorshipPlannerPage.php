@@ -15,7 +15,6 @@ use App\Models\Service as ChurchService;
 use App\Services\WorshipPlannerService;
 use Lightworx\FilamentSettings\Models\FilamentSetting;
 use BackedEnum;
-use UnitEnum;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
@@ -30,12 +29,13 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
+use App\Filament\Clusters\Worship\WorshipCluster;
 
 class WorshipPlannerPage extends Page
 {
     protected static string | BackedEnum | null $navigationIcon  = 'heroicon-o-calendar-days';
     protected static ?string                    $navigationLabel = 'Worship Planner';
-    protected static string | UnitEnum | null   $navigationGroup = 'Worship';
+    protected static ?string                    $cluster         = WorshipCluster::class;
     protected static ?int                       $navigationSort  = 1;
     protected string                            $view            = 'filament.pages.worship-planner';
 
@@ -146,6 +146,13 @@ class WorshipPlannerPage extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('printPlan')
+                ->label('Print Plan')
+                ->icon('heroicon-o-printer')
+                ->color('gray')
+                ->url(fn () => route('reports.worship-plan', $this->year))
+                ->openUrlInNewTab(),
+
             Action::make('plannerSettings')
                 ->label('Roster Settings')
                 ->icon('heroicon-o-cog-6-tooth')
@@ -158,9 +165,33 @@ class WorshipPlannerPage extends Page
                 ->action(fn (array $data) => $this->saveRosterSettings($data)),
 
             Action::make('resync')
-                ->label('Re-sync from API')
+                ->label(function () {
+                    if ($this->year !== now()->year) {
+                        return 'Re-sync from API';
+                    }
+
+                    $missing = WorshipSundayGroup::whereYear('service_date', $this->year)
+                        ->whereNull('preacher_name')
+                        ->where('service_date', '>=', now()->toDateString())
+                        ->count();
+
+                    return $missing > 0
+                        ? "Re-sync from API ({$missing} unscheduled)"
+                        : 'Re-sync from API';
+                })
                 ->icon('heroicon-o-arrow-path')
-                ->color('gray')
+                ->color(function () {
+                    if ($this->year !== now()->year) {
+                        return 'gray';
+                    }
+
+                    $missing = WorshipSundayGroup::whereYear('service_date', $this->year)
+                        ->whereNull('preacher_name')
+                        ->where('service_date', '>=', now()->toDateString())
+                        ->count();
+
+                    return $missing > 0 ? 'warning' : 'gray';
+                })
                 ->requiresConfirmation()
                 ->modalHeading('Re-sync ' . $this->year . ' from API?')
                 ->modalDescription('Refreshes preacher names, service types and midweek dates from the external API.')

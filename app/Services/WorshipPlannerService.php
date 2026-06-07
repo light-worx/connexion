@@ -144,7 +144,7 @@ class WorshipPlannerService
                 $dayAppointments = ($byDate[$date] ?? collect())
                     ->keyBy(fn ($a) => $this->normaliseTime($a['time']));
 
-                // Update preacher on group from first configured time
+                // Always update preacher — overwrites null AND stale values
                 $firstAppt = $dayAppointments[$configuredTimes->first()] ?? null;
                 if ($firstAppt && isset($firstAppt['preacher'])) {
                     $person = $this->resolvePersonFromName($firstAppt['preacher']);
@@ -153,6 +153,7 @@ class WorshipPlannerService
                         'preacher_person_id' => $person?->id,
                         'api_synced_at'      => now(),
                     ]);
+                    $updated++;
                 }
 
                 // Update service_type on each plan
@@ -160,7 +161,6 @@ class WorshipPlannerService
                     $appt = $dayAppointments[$plan->service_time] ?? null;
                     if ($appt) {
                         $plan->update(['service_type' => $appt['service_type'] ?? null]);
-                        $updated++;
                     }
                 }
             });
