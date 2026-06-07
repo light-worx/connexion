@@ -44,7 +44,8 @@ class WorshipPlannerPage extends Page
     #[Url(as: 'year')]
     public int $year;
 
-    public ?int $editingPlanId  = null;
+    public ?int $editingPlanId      = null;
+    public ?int $editingGroupId     = null;
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -123,6 +124,12 @@ class WorshipPlannerPage extends Page
         $this->mountAction('editPlan');
     }
 
+    public function manageSpecialTimes(int $groupId): void
+    {
+        $this->editingGroupId = $groupId;
+        $this->mountAction('manageSpecialTimes');
+    }
+
     protected function getEditingPlan(): ?WorshipPlan
     {
         if (! $this->editingPlanId) return null;
@@ -168,6 +175,7 @@ class WorshipPlannerPage extends Page
             // Triggered from cards via mountAction() — visually hidden but fully registered.
             $this->getEditPlanAction()->extraAttributes(['class' => 'hidden', 'style' => 'display:none']),
             $this->getFinalisePlanAction()->extraAttributes(['class' => 'hidden', 'style' => 'display:none']),
+            $this->getManageSpecialTimesAction()->extraAttributes(['class' => 'hidden', 'style' => 'display:none']),
         ];
     }
 
@@ -361,6 +369,103 @@ class WorshipPlannerPage extends Page
     {
         if (! $this->editingPlanId) return null;
         return WorshipPlan::with(['sundayGroup.series', 'overrideSeries'])->find($this->editingPlanId);
+    }
+
+    protected function getManageSpecialTimesAction(): Action
+    {
+        return Action::make('manageSpecialTimes')
+            ->label(fn () => $this->editingGroupId
+                ? 'Time slots — ' . optional(WorshipSundayGroup::find($this->editingGroupId))->display_name
+                : 'Manage Time Slots'
+            )
+            ->modalHeading(fn () => optional(WorshipSundayGroup::find($this->editingGroupId))->display_name
+                ? 'Time slots for ' . WorshipSundayGroup::find($this->editingGroupId)->display_name
+                : 'Manage Time Slots'
+            )
+            ->modalDescription('Add, edit or remove service times for this special service.')
+            ->modalWidth('md')
+            ->modalSubmitActionLabel('Save')
+            ->form(function (): array {
+                $group = WorshipSundayGroup::with('plans')->find($this->editingGroupId);
+                if (! $group) return [];
+
+                return [
+                    \Filament\Forms\Components\Repeater::make('times')
+                        ->label('Service times')
+                        ->schema([
+                            TextInput::make('time')
+                                ->label('Time')
+                                ->placeholder('e.g. 09h00')
+                                ->required()
+                                ->rules(['regex:/^\d{2}h\d{2}$/'])
+                                ->validationMessages([
+                                    'regex' => 'Use the format 09h00',
+                                ]),
+                        ])
+                        ->default(
+                            $group->plans
+                                ->pluck('service_time')
+                                ->map(fn ($t) => ['time' => $t])
+                                ->values()
+                                ->toArray()
+                        )
+                        ->addActionLabel('Add time slot')
+                        ->minItems(1)
+                        ->reorderable(false)
+                        ->columnSpanFull(),
+                ];
+            })
+            ->action(function (array $data): void {
+                $group = WorshipSundayGroup::with('plans')->find($this->editingGroupId);
+                if (! $group) return;
+
+                $newTimes = collect($data['times'])
+                    ->pluck('time')
+                    ->map(fn ($t) => trim($t))
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                $existingTimes = $group->plans->pluck('service_time');
+
+                // Add new time slots
+                foreach ($newTimes as $time) {
+                    if (! $existingTimes->contains($time)) {
+                        WorshipPlan::create([
+                            'worship_sunday_group_id' => $group->id,
+                            'service_time'            => $time,
+                            'status'                  => 'draft',
+                        ]);
+                    }
+                }
+
+                // Remove time slots no longer in the list
+                // Only remove if the plan has no items (safety guard)
+                foreach ($existingTimes as $time) {
+                    if (! $newTimes->contains($time)) {
+                        $plan = $group->plans->firstWhere('service_time', $time);
+                        if ($plan && $plan->planItems()->count() === 0) {
+                            $plan->delete();
+                        } else {
+                            Notification::make()
+                                ->title("Could not remove {$time}")
+                                ->body('This slot has songs or prayers assigned. Remove them first.')
+                                ->warning()
+                                ->send();
+                        }
+                    }
+                }
+
+                // Rename if a single slot's time was edited
+                // (handled above via add + remove)
+
+                Notification::make()
+                    ->title('Time slots updated')
+                    ->success()
+                    ->send();
+
+                $this->editingGroupId = null;
+            });
     }
 
     // ── Roster Settings form ─────────────────────────────────────────────────

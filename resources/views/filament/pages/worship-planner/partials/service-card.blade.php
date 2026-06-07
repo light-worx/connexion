@@ -125,4 +125,19 @@
     <div class="mt-0.5">
         @livewire('worship-plan-roster-preview', ['groupId' => $group->id], key('roster-' . $group->id))
     </div>
+
+    {{-- Manage time slots — special services only --}}
+    @if ($isSpecial)
+        <button
+            wire:click="manageSpecialTimes({{ $group->id }})"
+            class="w-full flex items-center justify-center gap-1.5 text-[11px] font-medium
+                   text-primary-600 hover:text-primary-800 dark:text-primary-400
+                   border border-dashed border-primary-300 dark:border-primary-700
+                   hover:bg-primary-50 dark:hover:bg-primary-900/20
+                   rounded-lg py-1.5 transition"
+        >
+            <x-heroicon-s-clock class="w-3.5 h-3.5" />
+            Manage time slots
+        </button>
+    @endif
 </div>
