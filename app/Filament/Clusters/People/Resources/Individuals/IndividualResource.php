@@ -14,7 +14,6 @@ use App\Filament\Clusters\People\Resources\Individuals\Pages\ListIndividuals;
 use App\Filament\Clusters\People\Resources\Individuals\Schemas\IndividualForm;
 use App\Filament\Clusters\People\Resources\Individuals\Tables\IndividualsTable;
 use App\Models\Individual;
-use UnitEnum;
 
 class IndividualResource extends Resource
 {

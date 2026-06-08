@@ -35,7 +35,7 @@ class WorshipPlanRosterPreview extends Component
         $serviceTimes = $group->plans->pluck('service_time');
 
         return $serviceTimes->mapWithKeys(function (string $time) use ($date) {
-            $items = Rosteritem::whereHas('rosterGroup.roster', fn ($q) =>
+            $items = Rosteritem::whereHas('rostergroup.roster', fn ($q) =>
                     $q->where('sundayservice', $time)
                 )
                 ->where('rosterdate', $date)
@@ -43,11 +43,12 @@ class WorshipPlanRosterPreview extends Component
                     'rosterGroup.group',
                     'individuals',
                 ])
-                ->get()
-                ->map(fn ($item) => [
+                ->get();
+                dd($items);
+                /*->map(fn ($item) => [
                     'group_name'  => $item->rosterGroup->group->name ?? '—',
                     'individuals' => $item->individuals->pluck('name')->join(', '),
-                ]);
+                ]);*/
 
             return [$time => $items];
         })->filter(fn ($items) => $items->isNotEmpty());

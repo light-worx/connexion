@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Clusters\Worship\WorshipCluster;
 use App\Models\WorshipSundayGroup;
 use App\Models\WorshipPlan;
 use App\Models\WorshipPlanItem;
@@ -19,6 +18,7 @@ use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -29,6 +29,8 @@ use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
+
+use App\Filament\Clusters\Worship\WorshipCluster;
 
 class WorshipPlannerPage extends Page
 {
@@ -164,33 +166,9 @@ class WorshipPlannerPage extends Page
                 ->action(fn (array $data) => $this->saveRosterSettings($data)),
 
             Action::make('resync')
-                ->label(function () {
-                    if ($this->year !== now()->year) {
-                        return 'Re-sync from API';
-                    }
-
-                    $missing = WorshipSundayGroup::whereYear('service_date', $this->year)
-                        ->whereNull('preacher_name')
-                        ->where('service_date', '>=', now()->toDateString())
-                        ->count();
-
-                    return $missing > 0
-                        ? "Re-sync from API ({$missing} unscheduled)"
-                        : 'Re-sync from API';
-                })
+                ->label('Re-sync from API')
                 ->icon('heroicon-o-arrow-path')
-                ->color(function () {
-                    if ($this->year !== now()->year) {
-                        return 'gray';
-                    }
-
-                    $missing = WorshipSundayGroup::whereYear('service_date', $this->year)
-                        ->whereNull('preacher_name')
-                        ->where('service_date', '>=', now()->toDateString())
-                        ->count();
-
-                    return $missing > 0 ? 'warning' : 'gray';
-                })
+                ->color('gray')
                 ->requiresConfirmation()
                 ->modalHeading('Re-sync ' . $this->year . ' from API?')
                 ->modalDescription('Refreshes preacher names, service types and midweek dates from the external API.')

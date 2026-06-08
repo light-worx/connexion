@@ -2,6 +2,8 @@
 
 namespace App\Filament\Clusters\People\Resources\Rosters\Tables;
 
+use App\Models\Roster;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -27,6 +29,7 @@ class RostersTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
+                Action::make('Manage')->url(fn (Roster $record): string => route('filament.admin.people.resources.rosters.manage', [$record, date('Y-m-d')])),
                 EditAction::make(),
             ])
             ->toolbarActions([

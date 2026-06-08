@@ -104,7 +104,7 @@ class WorshipPlanReport extends BaseReport
         $this->renderTable(
             headers: ['Date', 'Series', 'Preacher', 'Reading'],
             rows: $rows,
-            columnWidths: [25, 50, 35, 70]
+            columnWidths: [18, 57, 35, 70]
         );
     }
 

@@ -50,19 +50,19 @@
         <p class="text-xs italic text-gray-400 dark:text-gray-500">+ Assign series</p>
     @endif
 
-    {{-- Per-time-slot rows — each shows its own status --}}
+    {{-- Per-time-slot rows — colour coded by status, no text pill --}}
     @foreach ($plans as $plan)
         @php
             $songCount   = $plan->planItems->where('itemable_type', \App\Models\Song::class)->count();
             $prayerCount = $plan->planItems->where('itemable_type', \App\Models\Prayer::class)->count();
 
-            $slotColour = match ($plan->status) {
-                'published' => 'border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/20',
-                'confirmed' => 'border-warning-200 bg-warning-50 dark:border-warning-800 dark:bg-warning-900/20',
+            $rowClass = match ($plan->status) {
+                'published' => 'border-success-200 bg-success-50 dark:border-success-800 dark:bg-success-900/30',
+                'confirmed' => 'border-warning-200 bg-warning-50 dark:border-warning-800 dark:bg-warning-900/30',
                 default     => 'border-gray-100 bg-white dark:border-gray-700 dark:bg-gray-800',
             };
 
-            $timeColour = match ($plan->status) {
+            $timeClass = match ($plan->status) {
                 'published' => 'text-success-700 dark:text-success-400',
                 'confirmed' => 'text-warning-700 dark:text-warning-400',
                 default     => 'text-gray-700 dark:text-gray-300',
@@ -73,22 +73,11 @@
             wire:click="editPlan({{ $plan->id }})"
             class="w-full flex items-center justify-between rounded-lg border px-2 py-1.5
                    hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20
-                   transition text-left {{ $slotColour }}"
+                   transition text-left {{ $rowClass }}"
         >
             <div class="flex items-center gap-1.5 flex-wrap">
-                {{-- Time with per-slot colour --}}
-                <span class="text-xs font-mono font-semibold {{ $timeColour }}">
+                <span class="text-xs font-mono font-semibold {{ $timeClass }}">
                     {{ $plan->service_time }}
-                </span>
-
-                {{-- Per-slot status pill --}}
-                <span @class([
-                    'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
-                    'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300' => $plan->isPublished(),
-                    'bg-warning-100 text-warning-700 dark:bg-warning-900 dark:text-warning-300' => $plan->isConfirmed(),
-                    'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'             => $plan->isDraft(),
-                ])>
-                    {{ ucfirst($plan->status) }}
                 </span>
 
                 {{-- Service type badge e.g. COM --}}

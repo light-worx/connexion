@@ -14,6 +14,7 @@ use App\Filament\Clusters\People\PeopleCluster;
 use App\Filament\Clusters\People\Resources\Rosters\Pages\CreateRoster;
 use App\Filament\Clusters\People\Resources\Rosters\Pages\EditRoster;
 use App\Filament\Clusters\People\Resources\Rosters\Pages\ListRosters;
+use App\Filament\Clusters\People\Resources\Rosters\Pages\ManageRoster;
 use App\Filament\Clusters\People\Resources\Rosters\Schemas\RosterForm;
 use App\Filament\Clusters\People\Resources\Rosters\Tables\RostersTable;
 
@@ -28,11 +29,6 @@ class RosterResource extends Resource
     protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'roster';
-
-    public static function canAccess(): bool
-    {
-        return setting('people_module');
-    }
 
     public static function form(Schema $schema): Schema
     {
@@ -57,6 +53,7 @@ class RosterResource extends Resource
             'index' => ListRosters::route('/'),
             'create' => CreateRoster::route('/create'),
             'edit' => EditRoster::route('/{record}/edit'),
+            'manage' => ManageRoster::route('/{record}/{rostermonth}'),
         ];
     }
 
