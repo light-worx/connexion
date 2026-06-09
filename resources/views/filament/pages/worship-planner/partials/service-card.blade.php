@@ -67,6 +67,29 @@
                 'confirmed' => 'text-warning-700 dark:text-warning-400',
                 default     => 'text-gray-700 dark:text-gray-300',
             };
+
+            // Roster completeness dot
+            $rosterSettings  = setting('worship_planner_roster') ?? [];
+            $timeSettings    = $rosterSettings[$plan->service_time] ?? [];
+            $allowedGroupIds = $timeSettings['rostergroup_ids'] ?? [];
+            $rosterTotal     = count($allowedGroupIds);
+
+            if ($rosterTotal > 0) {
+                $rosterFilled = \App\Models\Rosteritem::whereHas('rostergroup', fn ($q) =>
+                        $q->whereIn('id', $allowedGroupIds)
+                    )
+                    ->where('rosterdate', $group->service_date->toDateString())
+                    ->whereHas('individuals')
+                    ->count();
+
+                $rosterDot = match(true) {
+                    $rosterFilled === 0          => ['colour' => 'bg-gray-300 dark:bg-gray-600',      'tip' => "No roster assigned ({$rosterTotal} needed)"],
+                    $rosterFilled < $rosterTotal => ['colour' => 'bg-amber-400 dark:bg-amber-500',    'tip' => "Partially rostered ({$rosterFilled}/{$rosterTotal})"],
+                    default                      => ['colour' => 'bg-success-400 dark:bg-success-500','tip' => "Fully rostered ({$rosterFilled}/{$rosterTotal})"],
+                };
+            } else {
+                $rosterDot = null;
+            }
         @endphp
 
         <button
@@ -104,16 +127,19 @@
                 @endif
             </div>
 
-            <x-heroicon-s-pencil-square
-                class="w-3.5 h-3.5 text-gray-300 group-hover:text-primary-400 shrink-0 transition ml-1"
-            />
+            <div class="flex items-center gap-1.5 shrink-0">
+                @if ($rosterDot)
+                    <span
+                        class="w-2 h-2 rounded-full {{ $rosterDot['colour'] }}"
+                        title="{{ $rosterDot['tip'] }}"
+                    ></span>
+                @endif
+                <x-heroicon-s-pencil-square
+                    class="w-3.5 h-3.5 text-gray-300 group-hover:text-primary-400 transition"
+                />
+            </div>
         </button>
     @endforeach
-
-    {{-- Roster preview --}}
-    <div class="mt-0.5">
-        @livewire('worship-plan-roster-preview', ['groupId' => $group->id], key('roster-' . $group->id))
-    </div>
 
     {{-- Manage time slots — special services only --}}
     @if ($isSpecial)

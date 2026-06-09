@@ -45,14 +45,16 @@ class WorshipPlannerPage extends Page
     #[Url(as: 'year')]
     public int $year;
 
-    public ?int $editingPlanId      = null;
-    public ?int $editingGroupId     = null;
+    public bool $showFullYear    = false;
+    public ?int $editingPlanId   = null;
+    public ?int $editingGroupId  = null;
 
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
     public function mount(WorshipPlannerService $service): void
     {
         $this->year = (int) request('year', now()->year);
+        $this->showFullYear = $this->year !== now()->year;
         $this->ensureYearExists($service);
     }
 
@@ -60,11 +62,22 @@ class WorshipPlannerPage extends Page
 
     public function getMonthsProperty(): Collection
     {
-        return WorshipSundayGroup::forYear($this->year)
-            ->with(['series', 'plans', 'plans.overrideSeries', 'plans.planItems'])
-            ->get()
+        $query = WorshipSundayGroup::forYear($this->year)
+            ->with(['series', 'plans', 'plans.overrideSeries', 'plans.planItems']);
+
+        // For the current year, default to showing from this month onwards
+        if ($this->year === now()->year && ! $this->showFullYear) {
+            $query->whereMonth('service_date', '>=', now()->month);
+        }
+
+        return $query->get()
             ->groupBy(fn ($g) => (int) $g->service_date->format('n'))
             ->sortKeys();
+    }
+
+    public function toggleFullYear(): void
+    {
+        $this->showFullYear = ! $this->showFullYear;
     }
 
     // ── Year navigation ──────────────────────────────────────────────────────
@@ -72,12 +85,14 @@ class WorshipPlannerPage extends Page
     public function previousYear(WorshipPlannerService $service): void
     {
         $this->year--;
+        $this->showFullYear = $this->year !== now()->year;
         $this->ensureYearExists($service);
     }
 
     public function nextYear(WorshipPlannerService $service): void
     {
         $this->year++;
+        $this->showFullYear = $this->year !== now()->year;
         $this->ensureYearExists($service);
     }
 
@@ -166,7 +181,7 @@ class WorshipPlannerPage extends Page
                 ->action(fn (array $data) => $this->saveRosterSettings($data)),
 
             Action::make('resync')
-                ->label('Re-sync from API')
+                ->label('Re-sync from Plan')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -505,7 +520,7 @@ class WorshipPlannerPage extends Page
                             return \App\Models\Rostergroup::where('roster_id', $id)
                                 ->with('group')
                                 ->get()
-                                ->mapWithKeys(fn ($rg) => [$rg->id => $rg->group->name ?? "Group {$rg->id}"])
+                                ->mapWithKeys(fn ($rg) => [$rg->id => $rg->group->groupname ?? "Group {$rg->id}"])
                                 ->toArray();
                         })
                         ->default($saved['rostergroup_ids'] ?? [])
@@ -652,15 +667,4 @@ class WorshipPlannerPage extends Page
     // ── Page metadata ─────────────────────────────────────────────────────────
 
     public function getTitle(): string { return 'Worship Planner'; }
-
-    public static function getNavigationBadge(): ?string
-    {
-        $count = WorshipPlan::where('status', 'draft')
-            ->whereHas('sundayGroup', fn ($q) =>
-                $q->whereYear('service_date', now()->year)
-                  ->where('service_date', '>=', now()->toDateString()))
-            ->count();
-
-        return $count > 0 ? (string) $count : null;
-    }
 }

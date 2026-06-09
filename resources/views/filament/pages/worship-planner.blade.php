@@ -1,6 +1,6 @@
 <x-filament-panels::page>
 
-    {{-- ── Year Navigation ─────────────────────────────────────────── --}}
+    {{-- ── Year Navigation + Full Year Toggle ─────────────────────── --}}
     <div class="flex items-center gap-3 mb-6">
         <x-filament::button
             wire:click="previousYear"
@@ -23,6 +23,25 @@
             color="primary"
             label=""
         />
+
+        {{-- Full year toggle — current year only --}}
+        @if ($this->year === now()->year)
+            <div class="ml-auto flex items-center gap-2">
+                <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    {{ $showFullYear ? 'Full year' : 'From ' . now()->format('M') }}
+                </span>
+                <button
+                    wire:click="toggleFullYear"
+                    class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none
+                           {{ $showFullYear ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600' }}"
+                    title="{{ $showFullYear ? 'Showing full year' : 'Showing from ' . now()->format('F') . ' onwards' }}"
+                >
+                    <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform
+                                 {{ $showFullYear ? 'translate-x-4' : 'translate-x-1' }}">
+                    </span>
+                </button>
+            </div>
+        @endif
     </div>
 
     {{-- ── Empty state ──────────────────────────────────────────────── --}}

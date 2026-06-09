@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class WorshipPlan extends Model
 {
@@ -95,28 +94,17 @@ class WorshipPlan extends Model
     /**
      * Returns all rosteritems for this plan's date and matching service time,
      * with their groups and assigned individuals loaded.
-     * Respects group_individual.categories filtering.
      */
     public function rosterItems(): Collection
     {
         $date        = $this->sundayGroup->service_date->toDateString();
-        $serviceTime = $this->service_time; // e.g. "07h30"
+        $serviceTime = $this->service_time;
 
-        return Rosteritem::whereHas('rosterGroup.roster', function ($q) use ($serviceTime) {
+        return \App\Models\Rosteritem::whereHas('rostergroup.roster', function ($q) use ($serviceTime) {
                 $q->where('sundayservice', $serviceTime);
             })
             ->where('rosterdate', $date)
-            ->with([
-                'rosterGroup.group',
-                'individuals' => function ($q) use ($serviceTime) {
-                    $q->whereHas('groupIndividuals', function ($q2) use ($serviceTime) {
-                        $q2->where(function ($q3) use ($serviceTime) {
-                            $q3->whereNull('categories')
-                               ->orWhereJsonContains('categories', $serviceTime);
-                        });
-                    });
-                },
-            ])
+            ->with(['rostergroup.group', 'individuals'])
             ->get();
     }
 
@@ -131,10 +119,10 @@ class WorshipPlan extends Model
      */
     public function publish(): void
     {
-        DB::transaction(function () {
+        \DB::transaction(function () {
             $this->confirmedItems
                 ->each(function (WorshipPlanItem $item, int $index) {
-                    Setitem::create([
+                    ServiceItem::create([
                         'service_id'    => $this->getOrCreateServiceId(),
                         'itemable_type' => $item->itemable_type,
                         'itemable_id'   => $item->itemable_id,

@@ -3,55 +3,54 @@
 namespace App\Livewire;
 
 use App\Models\WorshipSundayGroup;
-use App\Models\Rosteritem;
 use Livewire\Component;
 use Illuminate\Support\Collection;
 
 /**
- * Lightweight read-only component that shows who is rostered for each
- * time-slot on a given Sunday, rendered inside each planner card.
- *
- * Loaded lazily to avoid N+1 queries on the main planner view.
+ * Shows a small roster-completeness indicator per time-slot on the planner card.
+ * Green dot = all configured rostergroups have someone assigned.
+ * Amber dot = some assigned but not all.
+ * Gray dot  = none assigned yet.
  */
 class WorshipPlanRosterPreview extends Component
 {
     public int $groupId;
 
     /**
-     * Returns roster assignments grouped by service_time.
-     * Shape: [ '07h30' => [ ['group' => 'Pianists', 'individuals' => [...]], ... ], ... ]
+     * Returns completeness per service time.
+     * Shape: [ '07h30' => ['filled' => 2, 'total' => 3], ... ]
      */
-    public function getRosterByTimeProperty(): Collection
+    public function getCompletionByTimeProperty(): Collection
     {
-        $group = WorshipSundayGroup::find($this->groupId);
+        $group = WorshipSundayGroup::with('plans')->find($this->groupId);
 
-        if (! $group) {
-            return collect();
-        }
+        if (! $group) return collect();
 
-        $date = $group->service_date->toDateString();
+        $date            = $group->service_date->toDateString();
+        $rosterSettings  = setting('worship_planner_roster') ?? [];
 
-        // Get service times for this group from its plans
-        $serviceTimes = $group->plans->pluck('service_time');
+        return $group->plans->mapWithKeys(function ($plan) use ($date, $rosterSettings) {
+            $time            = $plan->service_time;
+            $timeSettings    = $rosterSettings[$time] ?? [];
+            $allowedGroupIds = $timeSettings['rostergroup_ids'] ?? [];
 
-        return $serviceTimes->mapWithKeys(function (string $time) use ($date) {
-            $items = Rosteritem::whereHas('rostergroup.roster', fn ($q) =>
-                    $q->where('sundayservice', $time)
+            // If no rostergroups configured for this time, show nothing
+            if (empty($allowedGroupIds)) {
+                return [$time => null];
+            }
+
+            $total = count($allowedGroupIds);
+
+            // Count how many configured rostergroups have at least one individual assigned
+            $filled = \App\Models\Rosteritem::whereHas('rostergroup', fn ($q) =>
+                    $q->whereIn('id', $allowedGroupIds)
                 )
                 ->where('rosterdate', $date)
-                ->with([
-                    'rosterGroup.group',
-                    'individuals',
-                ])
-                ->get();
-                dd($items);
-                /*->map(fn ($item) => [
-                    'group_name'  => $item->rosterGroup->group->name ?? '—',
-                    'individuals' => $item->individuals->pluck('name')->join(', '),
-                ]);*/
+                ->whereHas('individuals')
+                ->count();
 
-            return [$time => $items];
-        })->filter(fn ($items) => $items->isNotEmpty());
+            return [$time => ['filled' => $filled, 'total' => $total]];
+        })->filter(fn ($v) => $v !== null);
     }
 
     public function render()

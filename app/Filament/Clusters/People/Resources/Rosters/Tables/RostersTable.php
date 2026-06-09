@@ -28,6 +28,7 @@ class RostersTable
             ->filters([
                 TrashedFilter::make(),
             ])
+            ->recordUrl(fn (Roster $record): string => route('filament.admin.people.resources.rosters.manage', [$record, date('Y-m-d')]))
             ->recordActions([
                 Action::make('Manage')->url(fn (Roster $record): string => route('filament.admin.people.resources.rosters.manage', [$record, date('Y-m-d')])),
                 EditAction::make(),

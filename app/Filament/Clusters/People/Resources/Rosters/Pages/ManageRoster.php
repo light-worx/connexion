@@ -19,7 +19,6 @@ use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Support\HtmlString;
 use Filament\Notifications\Notification;
-use App\Http\Controllers\ReportsController;
 use App\Jobs\SendSMS;
 use App\Mail\ChurchMail;
 use App\Models\Midweek;
@@ -29,6 +28,7 @@ use App\Services\BulksmsService;
 use Filament\Actions\ActionGroup;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 class ManageRoster extends Page implements HasForms
@@ -104,12 +104,12 @@ class ManageRoster extends Page implements HasForms
                 ->form($schema)
                 ->modalSubmitActionLabel('Send messages')
                 ->action(fn () => self::sendMessages()),
-            /*Action::make('report')->label('View Roster')
+            Action::make('report')->label('View Roster')
                 ->url(fn (): string => route('reports.roster', [
-                    'id' => $this->record,
-                    'year' => date('Y',strtotime($this->data['firstofmonth'])), 
-                    'month' => date('m',strtotime($this->data['firstofmonth']))
-                ]))*/
+                    'roster' => $this->record,
+                    'rosteryear' => date('Y',strtotime($this->data['firstofmonth'])), 
+                    'rostermonth' => date('m',strtotime($this->data['firstofmonth']))
+                ]))
         ];
     }
 
@@ -123,7 +123,6 @@ class ManageRoster extends Page implements HasForms
         $data['ridata']=array();
         $messages = "";
         foreach ($rosteritems as $ri){
-            dd($ri);
             foreach ($ri->individuals as $indiv){
                 if ($indiv->cellphone){
                     $msg = $indiv->firstname . ", " . $record->message . " (" . $ri->rostergroup->group->groupname . ")";
@@ -165,7 +164,7 @@ class ManageRoster extends Page implements HasForms
     {
         $firstday = date('Y-m-d', strtotime($firstday));
         $nextmonth = date('Y-m-t', strtotime($firstday. ' + 1 month'));
-        $repcontroller=new ReportsController();
+        //$repcontroller=new ReportsController();
         $makepdf=$repcontroller->roster($this->record->id,date('Y',strtotime($firstday)),date('n',strtotime($firstday)),2,'F');
         $groups = Rostergroup::with('group.individuals')->where('roster_id',$this->record->id)->get();
         $rost = Roster::find($this->record->id);
@@ -258,22 +257,21 @@ class ManageRoster extends Page implements HasForms
                 $weeks[]=date('Y-m-d',strtotime($weeks[0] . ' + ' . $j . ' week'));
             }
         }
-        /*
-        // Deal with midweek services and check if potential services have preachers before adding to this roster
-        $servicetime=str_replace("h",":",$this->record->sundayservice);
-        $service=DB::table('services')->where('society_id',setting('services.society_id'))->where('servicetime',$servicetime)->first();
-        $midweeks=Midweek::where('servicedate','>=',$firstofmonth)->where('servicedate','<',date('Y-m-d',strtotime($firstofmonth . ' + 1 month')))->get();
-        if (count($midweeks)){
-            foreach ($midweeks as $mw){
-                if ($service){
-                    $plan=Plan::where('servicedate',$mw->servicedate)->where('service_id',$service->id)->get();
-                    if (count($plan)){
-                        $weeks[]=$mw->servicedate;
-                    }
+
+        $url = "https://methodist.church.net.za/api/public/societies/" . setting('society_id') . "/midweeks/" . date('Y',strtotime($thismonth));
+        $response = Http::timeout(10)->get($url);
+        $midweeks = $response->json('midweeks', []);
+        $monthYear = isset($weeks[0]) ? substr($weeks[0], 0, 7) : null; // e.g. "2026-06"
+        if ($monthYear) {
+            foreach ($midweeks as $name => $date) {
+                if (substr($date, 0, 7) === $monthYear) {
+                    $weeks[] = $date;
                 }
             }
-        }*/
-        asort($weeks);
+            
+            // Re-sort chronologically after inserting
+            sort($weeks);
+        }
         $this->data['columns']=1+count($weeks);
         return array_values($weeks);
     }
@@ -359,8 +357,8 @@ class ManageRoster extends Page implements HasForms
                 $onduty=array();
                 $onduty=$this->getIndivs($rg->id,$week);
                 if ($rg->maxpeople==1){
-                    if (isset($onduty)){
-                        $ind = $onduty;
+                    if ((isset($onduty)) && count($onduty)){
+                        $ind = $onduty[0];
                     } else {
                         $ind=0;
                     }
@@ -378,7 +376,7 @@ class ManageRoster extends Page implements HasForms
                         $ind=[];
                     }
                     $schema[] = Select::make('select_' . $wno . "_" . $rg->id)
-                        ->label('')
+                        ->hiddenLabel(true)
                         ->multiple()
                         ->options($members)
                         ->maxItems($rg->maxpeople)

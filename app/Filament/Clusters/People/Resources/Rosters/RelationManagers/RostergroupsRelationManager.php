@@ -28,7 +28,7 @@ class RostergroupsRelationManager extends RelationManager
         return $schema
             ->components([
                 Select::make('group_id')
-                    ->relationship('group', 'id')
+                    ->relationship('group', 'groupname')
                     ->required(),
                 TextInput::make('maxpeople')
                     ->required()
@@ -45,36 +45,20 @@ class RostergroupsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('rostergroup')
             ->columns([
-                TextColumn::make('group.id')
+                TextColumn::make('group.groupname')
                     ->searchable(),
-                TextColumn::make('maxpeople')
+                TextColumn::make('maxpeople')->label('Maximum people')
                     ->numeric()
                     ->sortable(),
-                TextColumn::make('extrainfo')
-                    ->searchable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('extraoptions')
-                    ->searchable(),
-                IconColumn::make('editable')
-                    ->boolean(),
             ])
             ->filters([
                 //
             ])
             ->headerActions([
-                CreateAction::make(),
-                AssociateAction::make(),
+                CreateAction::make()->label('Add group to roster'),
             ])
             ->recordActions([
                 EditAction::make(),
-                DissociateAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
