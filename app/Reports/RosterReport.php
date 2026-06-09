@@ -7,6 +7,7 @@ use Lightworx\FilamentReports\Reports\BaseReport;
 use App\Models\Individual;
 use App\Models\Roster;
 use App\Models\Rostergroup;
+use DateTime;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use stdClass;
@@ -20,7 +21,7 @@ class RosterReport extends BaseReport
         parent::__construct();
         $this->config['default_font']['family'] = 'Arial';
         $this->config['default_font']['size'] = 11;
-        $this->config['page']['margins']['left'] = 15;
+        $this->config['page']['margins']['left'] = 10;
         $this->config['page']['margins']['right'] = 10;
         $this->config['page']['margins']['top'] = 20;
         $this->config['page']['orientation'] = 'L';
@@ -43,32 +44,21 @@ class RosterReport extends BaseReport
         return $this;
     }
 
-    public function Header(): void
-    {
-        if (!$this->config['header']['enabled']) {
-            return;
-        }
-        $this->SetY($this->config['page']['margins']['top'] - 5);
-        $this->SetDrawColor(0,0,0);
-        $this->SetXY(15,22);
-        $this->Line(
-            $this->config['page']['margins']['left'],
-            $this->GetY(),
-            $this->GetPageWidth() - $this->config['page']['margins']['right'],
-            $this->GetY()
-        );
-        $this->Ln(5);
-    }
-
     public function generate(): void
     {
-        $this->setReportTitle($this->roster->roster);
         $this->AddPage('L');
+        $this->Image(url('/') . "/images/logo_large.png",7,3,62);
+        $this->SetFont('Arial', 'B', 18);
+        $this->text(73,11,$this->roster->roster);
+        $this->SetFont('Arial', '', 14);
+        $this->SetTitle($this->roster->roster);
+        $dateObj   = DateTime::createFromFormat('!m', $this->rostermonth);
+        $monthName = $dateObj->format('F');
+        $this->text(73,17,$monthName . " " . $this->rosteryear);
         $period=1;
-        $output=null;
         for ($i=0;$i<$period;$i++){
             $reportdate = date('F Y',strtotime($this->rosteryear . '-' . $this->rostermonth . '-01'));
-            $data = $this->getRosterData(date('Y-m',strtotime($this->rosteryear . '-' . $this->rostermonth . '-01')),$this->roster);
+            $data = $this->getRosterData(date('Y-m',strtotime($this->rosteryear . '-' . $this->rostermonth . '-01')),$this->roster->id);
             $xx = 66;
             $this->SetFont('Arial', 'B', 12);
             if (count($data['columns'])==6){
@@ -98,13 +88,16 @@ class RosterReport extends BaseReport
             $yy = 42;
             $max = 1;
             $first=true;
+            $minus=0;
             foreach ($data['rows'] as $key=>$col) {
                 $this->SetFont('Arial', 'B', 11);
+                $yy=$yy-$minus;
                 $this->text(10,1+$yy,$key);
                 if ($first){
                     $first=false;
                 } else {
                     $this->line(10, $yy-5, 290, $yy-5);
+                    $minus=0;
                 }
                 $xx = 22;
                 $this->SetFont('Arial', '', 10.5);
@@ -124,6 +117,7 @@ class RosterReport extends BaseReport
                             }
                             if ($count>$max){
                                 $max=$count;
+                                $minus = 4;
                             }
                         }
                     }
@@ -144,14 +138,13 @@ class RosterReport extends BaseReport
 
     protected function getFilename(): string
     {
-        return 'roster-report-' . now()->format('Y-M') . '.pdf';
+        return $this->roster->roster . ' ' . now()->format('Y-M') . '.pdf';
     }
 
     private function getRosterData($today,$id) {
         $firstday=date('l',strtotime($today.'-01'));
         $alldays=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        $rostermodel=$id;
-        $dday = 8 - array_search($firstday,$alldays) + array_search($rostermodel->dayofweek,$alldays);
+        $dday = 8 - array_search($firstday,$alldays) + array_search($this->roster->dayofweek,$alldays);
         if ($dday > 7){
             $dday=$dday-7;
         }
@@ -166,7 +159,7 @@ class RosterReport extends BaseReport
             ->where('rosters.id',$id)
             ->orderBy('groupname')
             ->get();
-        if ((isset($rostermodel->sundayservice)) and ($rostermodel->sundayservice!=='')){
+        if ((isset($this->roster->sundayservice)) and ($this->roster->sundayservice!=='')){
             $preachergroup=new stdClass();
             $preachergroup->groupname="Preacher";
             $preachergroup->id=0;
@@ -181,13 +174,13 @@ class RosterReport extends BaseReport
             foreach ($data['columns'] as $col){
                 $fixdate=date('Y-m-d',strtotime($col));
                 if ($group->id==0){
-                    /*$url="https://methodist.church.net.za/preacher/" . setting('services.society_id') . "/" . $rostermodel->sundayservice . "/" . date('Y-m-d',strtotime($col));
+                    $url="https://methodist.church.net.za/preacher/" . setting('society_id') . "/" . $this->roster->sundayservice . "/" . date('Y-m-d',strtotime($col));
                     $response=Http::get($url);
                     $extra = $response->body();
                     if ((isset($set->series)) and ($set->series->series !== "")) {
                         $extra = $extra . " (" . $set->series->series . ")";
                     }
-                    $data['rows'][$group->groupname][$col][] = $extra;*/
+                    $data['rows'][$group->groupname][$col][] = $extra;
                 } else {
                     $dum=DB::table('rosteritems')->join('rostergroups','rosteritems.rostergroup_id','=','rostergroups.id')
                         ->join('rosters','rostergroups.roster_id','=','rosters.id')
