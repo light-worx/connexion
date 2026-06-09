@@ -21,8 +21,6 @@ use Illuminate\Support\HtmlString;
 use Filament\Notifications\Notification;
 use App\Jobs\SendSMS;
 use App\Mail\ChurchMail;
-use App\Models\Midweek;
-use App\Models\Plan;
 use App\Models\Video;
 use App\Services\BulksmsService;
 use Filament\Actions\ActionGroup;
@@ -44,6 +42,8 @@ class ManageRoster extends Page implements HasForms
     public ?array $data;
 
     public $rostermonth;
+
+    public $midweeks;
 
     public $count;
 
@@ -260,10 +260,10 @@ class ManageRoster extends Page implements HasForms
 
         $url = "https://methodist.church.net.za/api/public/societies/" . setting('society_id') . "/midweeks/" . date('Y',strtotime($thismonth));
         $response = Http::timeout(10)->get($url);
-        $midweeks = $response->json('midweeks', []);
+        $this->midweeks = $response->json('midweeks', []);
         $monthYear = isset($weeks[0]) ? substr($weeks[0], 0, 7) : null; // e.g. "2026-06"
         if ($monthYear) {
-            foreach ($midweeks as $name => $date) {
+            foreach ($this->midweeks as $name => $date) {
                 if (substr($date, 0, 7) === $monthYear) {
                     $weeks[] = $date;
                 }
@@ -333,12 +333,18 @@ class ManageRoster extends Page implements HasForms
             }
             $this->data['week' . $ndx] = $label;
             if (date('l',strtotime($label))<>$rosterday){
-                $label.= " (" . date('D',strtotime($label)) . ")";
-            }
-            $schema[] = TextInput::make('week' . $ndx)->hiddenLabel(true)
+                $schema[] = TextInput::make('week' . $ndx)
+                    ->label(array_flip($this->midweeks)[$label])
+                    ->live()
+                    ->default($label)
+                    ->readonly();    
+            } else {
+                $schema[] = TextInput::make('week' . $ndx)->hiddenLabel(true)
                             ->live()
                             ->default($label)
                             ->readonly();
+            }
+            
         }
         foreach ($rostergroups as $ndx=>$rg) {
             $this->data['rgs'][]=$rg->id;

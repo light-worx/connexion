@@ -223,7 +223,7 @@ class RosterReport extends BaseReport
         return $data;
     }
 
-        private function getRosterWeeks($roster,$firstday){
+    private function getRosterWeeks($roster,$firstday){
         $weeks[]=$firstday;
         $ym=date('Y-m',strtotime($firstday));
         $nm=date('Y-m',strtotime($firstday . ' + 1 month'));
@@ -232,13 +232,34 @@ class RosterReport extends BaseReport
                 $weeks[]=date('Y-m-d',strtotime($firstday . ' + ' . $i * 7 . ' days'));
             }
         }
+        $url = "https://methodist.church.net.za/api/public/societies/" . setting('society_id') . "/midweeks/" . date('Y',strtotime($firstday));
+        try {
+            $response = Http::timeout(10)->get($url);
 
-        // Midweeks??
-        $mws=[];
+            if ($response->failed()) {
+                \Log::warning("RosterReport: midweeks API returned {$response->status()}");
+                return [];
+            }
+
+            $midweeks = $response->json('midweeks', []);
+
+        } catch (\Throwable $e) {
+            \Log::error("WorshipPlannerService: midweeks API failed — {$e->getMessage()}");
+            $midweeks = [];
+        }    
+        $monthYear = isset($weeks[0]) ? substr($weeks[0], 0, 7) : null; // e.g. "2026-06"
+        if ($monthYear) {
+            foreach ($midweeks as $name => $date) {
+                if (substr($date, 0, 7) === $monthYear) {
+                    $weeks[] = $date;
+                }
+            }
+            sort($weeks);
+        }
         asort($weeks);
         $dum=[
             'columns' => array_values($weeks),
-            'midweeks' => $mws
+            'midweeks' => array_flip($midweeks)
         ];
         return $dum;
     }
