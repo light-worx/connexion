@@ -9,17 +9,13 @@ return new class extends Migration
     {
         Schema::create('setitems', function ($table) {
             $table->id();
-            $table->foreignId('service_plan_id')->nullable();
-            $table->foreignId('service_id')->nullable();
-            $table->foreignId('plan_service_id')->nullable();
+            $table->foreignId('service_id')->constrained()->cascadeOnDelete();
             $table->integer('content_id')->nullable();
             $table->string('content_type')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->string('title')->nullable();
             $table->string('subtitle')->nullable();
             $table->timestamps();
-            $table->index(['service_plan_id', 'sort_order']);
-            $table->index(['plan_service_id', 'sort_order']);
             $table->index(['service_id', 'sort_order']);
         });
     }

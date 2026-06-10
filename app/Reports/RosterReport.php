@@ -46,18 +46,16 @@ class RosterReport extends BaseReport
 
     public function generate(): void
     {
-        $this->AddPage('L');
-        $this->Image(url('/') . "/images/logo_large.png",7,3,62);
-        $this->SetFont('Arial', 'B', 18);
-        $this->text(73,11,$this->roster->roster);
-        $this->SetFont('Arial', '', 14);
-        $this->SetTitle($this->roster->roster);
-        $dateObj   = DateTime::createFromFormat('!m', $this->rostermonth);
-        $monthName = $dateObj->format('F');
-        $this->text(73,17,$monthName . " " . $this->rosteryear);
+        $reportdate = date('F Y',strtotime($this->rosteryear . '-' . $this->rostermonth . '-01'));
+        $this->SetTitle($this->roster->roster . ": " . $reportdate);
         $period=1;
         for ($i=0;$i<$period;$i++){
-            $reportdate = date('F Y',strtotime($this->rosteryear . '-' . $this->rostermonth . '-01'));
+            $this->AddPage('L');
+            $this->Image(url('/') . "/images/logo_large.png",7,3,62);
+            $this->SetFont('Arial', 'B', 18);
+            $this->text(73,11,$this->roster->roster);
+            $this->SetFont('Arial', '', 14);    
+            $this->text(73,17,$reportdate);
             $data = $this->getRosterData(date('Y-m',strtotime($this->rosteryear . '-' . $this->rostermonth . '-01')),$this->roster->id);
             $xx = 66;
             $this->SetFont('Arial', 'B', 12);

@@ -134,9 +134,6 @@
                         title="{{ $rosterDot['tip'] }}"
                     ></span>
                 @endif
-                <x-heroicon-s-pencil-square
-                    class="w-3.5 h-3.5 text-gray-300 group-hover:text-primary-400 transition"
-                />
             </div>
         </button>
     @endforeach

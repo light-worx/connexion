@@ -51,7 +51,7 @@ class ServiceReport extends BaseReport
         $this->SetTitle($title . " - " . $stime);
         $this->SetAutoPageBreak(true, 0);
         $this->SetFont('Arial', 'B', 18);
-        $this->Image(url('/') . "/images/bwidelogo.png",123,8,77,30);
+        $this->Image(url('/') . "/images/logo_large.png",123,8,77,30);
         $this->rect(19,10,53,7.5,'F');
         $this->SetTextColor(255,255,255);
         if ($stime) {
@@ -65,13 +65,17 @@ class ServiceReport extends BaseReport
         $this->line(20, 35, 195, 35);
 
         if (isset($this->service->series_id)){
-            $this->rect(75,18,50,16);
             $this->SetFont('Arial', 'B', 12);
-            $this->text(77,23,"Sermon Series");
+            $this->text(76,15,"Sermon Series");
             $this->SetFont('Arial', '', 10);
             $series=Series::find($this->service->series_id);
-            $this->text(77,28,$series->series);
-            $this->text(77,32,"Week: " . 1 + (strtotime($this->service->servicedate) - strtotime($series->startingdate)) / 604800);
+            $this->SetXY(75,18);
+            $this->SetFont('Arial', 'B', 10);
+            $this->MultiCell(50,4,$series->series,0,'L');
+            $this->SetFont('Arial', '', 10);
+            $yy=$this->getY();
+            $this->text(76,$yy+4,"Week: " . 1 + (strtotime($this->service->servicedate) - strtotime($series->startingdate)) / 604800);
+            $this->rect(74,10,52,$yy-2);
         }
         
         $items = $this->service->setitems;

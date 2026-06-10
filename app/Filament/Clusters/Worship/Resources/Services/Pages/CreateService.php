@@ -23,10 +23,13 @@ class CreateService extends CreateRecord
         foreach ($items as $ndx => $item) {
             if ($item === 'Bible reading') {
                 $subtitle = $service->reading;
+                $ctype='reading';
             } elseif ($item === 'Sermon') {
                 $subtitle = 'Michael Bishop';
+                $ctype='sermon';
             } else {
                 $subtitle = null;
+                $ctype=null;
             }
 
             Setitem::create([
@@ -34,14 +37,8 @@ class CreateService extends CreateRecord
                 'title'      => $item,
                 'subtitle'   => $subtitle,
                 'sort_order' => $ndx,
+                'content_type'=>$ctype
             ]);
-        }
-        if (! ($this->data['include_planner_items'] ?? true)) {
-            return;
-        }
-        $plan = ServicePlan::whereDate('date', $service->servicedate)->first();
-        if ($plan) {
-            $plan->copyPlannedItemsToService($service);
         }
     }
 }

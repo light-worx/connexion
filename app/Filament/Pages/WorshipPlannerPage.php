@@ -181,7 +181,7 @@ class WorshipPlannerPage extends Page
                 ->action(fn (array $data) => $this->saveRosterSettings($data)),
 
             Action::make('resync')
-                ->label('Re-sync from Plan')
+                ->label('Re-sync from API')
                 ->icon('heroicon-o-arrow-path')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -287,7 +287,7 @@ class WorshipPlannerPage extends Page
                                 ]),
 
                             // ── PRAYERS TAB ──────────────────────────────
-                            Tab::make('Prayers')
+                            Tab::make('Liturgy')
                                 ->icon('heroicon-s-hand-raised')
                                 ->schema([
                                     ViewField::make('prayers_panel')
@@ -339,52 +339,76 @@ class WorshipPlannerPage extends Page
             ->requiresConfirmation()
             ->action(function () {
                 $plan = $this->getFinalisingPlan();
-                if (! $plan) return;
+                if (! $plan) {
+                    Notification::make()->title('No plan selected')->danger()->send();
+                    return;
+                }
 
-                \DB::transaction(function () use ($plan) {
-                    $group = $plan->sundayGroup;
+                try {
+                    \DB::transaction(function () use ($plan) {
+                        $group = $plan->sundayGroup;
 
-                    $service = ChurchService::firstOrCreate(
-                        [
-                            'servicedate' => $group->service_date->format('Y-m-d'),
-                            'servicetime' => $plan->service_time,
-                        ],
-                        [
+                        $service = ChurchService::firstOrCreate(
+                            [
+                                'servicedate' => $group->service_date->format('Y-m-d'),
+                                'servicetime' => $plan->service_time,
+                            ],
+                            [
+                                'series_id' => $plan->effective_series?->id,
+                                'person_id' => $group->preacher_person_id,
+                                'reading'   => $plan->effective_bible_reading,
+                            ]
+                        );
+
+                        $service->update([
                             'series_id' => $plan->effective_series?->id,
                             'person_id' => $group->preacher_person_id,
                             'reading'   => $plan->effective_bible_reading,
-                        ]
-                    );
+                        ]);
 
-                    $service->update([
-                        'series_id' => $plan->effective_series?->id,
-                        'person_id' => $group->preacher_person_id,
-                        'reading'   => $plan->effective_bible_reading,
+                        Setitem::where('service_id', $service->id)->delete();
+
+                        // Include suggested AND confirmed items — all planned items go into the order of service
+                        $plan->planItems()
+                            ->whereIn('status', ['suggested', 'confirmed'])
+                            ->with('itemable')
+                            ->orderBy('position')
+                            ->orderBy('created_at')
+                            ->get()
+                            ->each(function (WorshipPlanItem $item, int $index) use ($service) {
+                                Setitem::create([
+                                    'service_id'   => $service->id,
+                                    'content_type' => $item->isSong() ? 'song' : 'prayer',
+                                    'content_id'   => $item->itemable_id,
+                                    'sort_order'   => $item->position ?? $index + 1,
+                                ]);
+                            });
+
+                        $plan->update(['status' => 'published', 'published_at' => now()]);
+                    });
+
+                    $this->editingPlanId = null;
+
+                    Notification::make()
+                        ->title('Service finalised')
+                        ->body('Order of service has been published.')
+                        ->success()->send();
+
+                    // Redirect to refresh the page so cards reflect the new status
+                    $this->redirect(request()->header('Referer') ?? static::getUrl());
+
+                } catch (\Throwable $e) {
+                    \Log::error('WorshipPlannerPage: finalise failed', [
+                        'plan_id' => $plan->id,
+                        'message' => $e->getMessage(),
+                        'trace'   => $e->getTraceAsString(),
                     ]);
 
-                    Setitem::where('service_id', $service->id)->delete();
-
-                    $plan->confirmedItems()
-                        ->with('itemable')
-                        ->get()
-                        ->each(function (WorshipPlanItem $item, int $index) use ($service) {
-                            Setitem::create([
-                                'service_id'   => $service->id,
-                                'content_type' => $item->isSong() ? 'song' : 'prayer',
-                                'content_id'   => $item->itemable_id,
-                                'position'     => $item->position ?? $index + 1,
-                            ]);
-                        });
-
-                    $plan->update(['status' => 'published', 'published_at' => now()]);
-                });
-
-                $this->editingPlanId = null;
-
-                Notification::make()
-                    ->title('Service finalised')
-                    ->body('Order of service has been published.')
-                    ->success()->send();
+                    Notification::make()
+                        ->title('Finalise failed')
+                        ->body($e->getMessage())
+                        ->danger()->persistent()->send();
+                }
             });
     }
 
