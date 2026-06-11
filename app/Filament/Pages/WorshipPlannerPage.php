@@ -211,92 +211,132 @@ class WorshipPlannerPage extends Page
             ->modalWidth('2xl')
             ->modalSubmitActionLabel('Save Details')
             ->modalCancelActionLabel('Close')
-            ->extraModalFooterActions([
-                Action::make('finalise')
-                    ->label('Finalise Order of Service')
-                    ->color('success')
-                    ->icon('heroicon-s-check-badge')
-                    ->requiresConfirmation()
-                    ->modalHeading(function () {
-                        $plan = $this->getFinalisingPlan();
-                        return $plan
-                            ? 'Finalise ' . $plan->service_time . ' on ' . $plan->sundayGroup->service_date->format('j F Y') . '?'
-                            : 'Finalise Order of Service';
-                    })
-                    ->modalDescription('All planned items will be published to the order of service.')
-                    ->modalSubmitActionLabel('Yes, Finalise')
-                    ->action(function () {
-                        $plan = $this->getFinalisingPlan();
-                        if (! $plan) {
-                            Notification::make()->title('No plan selected')->danger()->send();
-                            return;
-                        }
+            ->modalSubmitAction(fn ($action) => $action->hidden($this->getEditingPlan()?->isPublished()))
+            ->extraModalFooterActions(function (): array {
+                $plan = $this->getEditingPlan();
 
-                        try {
-                            \DB::transaction(function () use ($plan) {
-                                $group = $plan->sundayGroup;
+                if ($plan?->isPublished()) {
+                    // Find the corresponding service record
+                    $service = ChurchService::where('servicedate', $plan->sundayGroup->service_date->format('Y-m-d'))
+                        ->where('servicetime', $plan->service_time)
+                        ->first();
 
-                                $service = ChurchService::firstOrCreate(
-                                    [
-                                        'servicedate' => $group->service_date->format('Y-m-d'),
-                                        'servicetime' => $plan->service_time,
-                                    ],
-                                    [
+                    return [
+                        Action::make('editService')
+                            ->label('Edit Order of Service')
+                            ->icon('heroicon-s-arrow-top-right-on-square')
+                            ->color('primary')
+                            ->url($service ? "/admin/worship/services/{$service->id}/edit" : null)
+                            ->openUrlInNewTab()
+                            ->disabled(! $service),
+                    ];
+                }
+
+                return [
+                    Action::make('finalise')
+                        ->label('Finalise Order of Service')
+                        ->color('success')
+                        ->icon('heroicon-s-check-badge')
+                        ->requiresConfirmation()
+                        ->modalHeading(function () {
+                            $plan = $this->getFinalisingPlan();
+                            return $plan
+                                ? 'Finalise ' . $plan->service_time . ' on ' . $plan->sundayGroup->service_date->format('j F Y') . '?'
+                                : 'Finalise Order of Service';
+                        })
+                        ->modalDescription('All planned items will be published to the order of service.')
+                        ->modalSubmitActionLabel('Yes, Finalise')
+                        ->action(function () {
+                            $plan = $this->getFinalisingPlan();
+                            if (! $plan) {
+                                Notification::make()->title('No plan selected')->danger()->send();
+                                return;
+                            }
+
+                            try {
+                                \DB::transaction(function () use ($plan) {
+                                    $group = $plan->sundayGroup;
+
+                                    $service = ChurchService::firstOrCreate(
+                                        [
+                                            'servicedate' => $group->service_date->format('Y-m-d'),
+                                            'servicetime' => $plan->service_time,
+                                        ],
+                                        [
+                                            'series_id' => $plan->effective_series?->id,
+                                            'person_id' => $group->preacher_person_id,
+                                            'reading'   => $plan->effective_bible_reading,
+                                        ]
+                                    );
+
+                                    $service->update([
                                         'series_id' => $plan->effective_series?->id,
                                         'person_id' => $group->preacher_person_id,
                                         'reading'   => $plan->effective_bible_reading,
-                                    ]
-                                );
+                                    ]);
 
-                                $service->update([
-                                    'series_id' => $plan->effective_series?->id,
-                                    'person_id' => $group->preacher_person_id,
-                                    'reading'   => $plan->effective_bible_reading,
+                                    app(\App\Services\OrderOfServiceService::class)->populate($service);
+
+                                    $existingCount = Setitem::where('service_id', $service->id)->count();
+
+                                    // If any items have been explicitly confirmed, use only those.
+                                    // Otherwise fall back to all suggested items (confirm step was skipped).
+                                    $hasConfirmed = $plan->planItems()
+                                        ->where('status', 'confirmed')
+                                        ->whereIn('itemable_type', [Song::class, Prayer::class])
+                                        ->exists();
+
+                                    $plan->planItems()
+                                        ->whereIn('status', $hasConfirmed ? ['confirmed'] : ['suggested', 'confirmed'])
+                                        ->whereIn('itemable_type', [Song::class, Prayer::class])
+                                        ->with('itemable')
+                                        ->orderBy('position')
+                                        ->orderBy('created_at')
+                                        ->get()
+                                        ->each(function (WorshipPlanItem $item, int $index) use ($service, $existingCount) {
+                                            $alreadyExists = Setitem::where('service_id', $service->id)
+                                                ->where('content_type', $item->isSong() ? 'song' : 'prayer')
+                                                ->where('content_id', $item->itemable_id)
+                                                ->exists();
+
+                                            if (! $alreadyExists) {
+                                                Setitem::create([
+                                                    'service_id'   => $service->id,
+                                                    'content_type' => $item->isSong() ? 'song' : 'prayer',
+                                                    'content_id'   => $item->itemable_id,
+                                                    'title'        => $item->itemable?->title,
+                                                    'sort_order'   => $existingCount + $index + 1,
+                                                ]);
+                                            }
+                                        });
+
+                                    $plan->update(['status' => 'published', 'published_at' => now()]);
+                                });
+
+                                $this->editingPlanId = null;
+
+                                Notification::make()
+                                    ->title('Service finalised')
+                                    ->body('Order of service has been published.')
+                                    ->success()->send();
+
+                                $this->redirect(request()->header('Referer') ?? static::getUrl());
+
+                            } catch (\Throwable $e) {
+                                \Log::error('WorshipPlannerPage: finalise failed', [
+                                    'plan_id' => $plan->id,
+                                    'message' => $e->getMessage(),
+                                    'trace'   => $e->getTraceAsString(),
                                 ]);
 
-                                Setitem::where('service_id', $service->id)->delete();
-
-                                $plan->planItems()
-                                    ->whereIn('status', ['suggested', 'confirmed'])
-                                    ->with('itemable')
-                                    ->orderBy('position')
-                                    ->orderBy('created_at')
-                                    ->get()
-                                    ->each(function (WorshipPlanItem $item, int $index) use ($service) {
-                                        Setitem::create([
-                                            'service_id'   => $service->id,
-                                            'content_type' => $item->isSong() ? 'song' : 'prayer',
-                                            'content_id'   => $item->itemable_id,
-                                            'sort_order'   => $item->position ?? $index + 1,
-                                        ]);
-                                    });
-
-                                $plan->update(['status' => 'published', 'published_at' => now()]);
-                            });
-
-                            $this->editingPlanId = null;
-
-                            Notification::make()
-                                ->title('Service finalised')
-                                ->body('Order of service has been published.')
-                                ->success()->send();
-
-                            $this->redirect(request()->header('Referer') ?? static::getUrl());
-
-                        } catch (\Throwable $e) {
-                            \Log::error('WorshipPlannerPage: finalise failed', [
-                                'plan_id' => $plan->id,
-                                'message' => $e->getMessage(),
-                                'trace'   => $e->getTraceAsString(),
-                            ]);
-
-                            Notification::make()
-                                ->title('Finalise failed')
-                                ->body($e->getMessage())
-                                ->danger()->persistent()->send();
-                        }
-                    }),
-            ])
+                                Notification::make()
+                                    ->title('Finalise failed')
+                                    ->body($e->getMessage())
+                                    ->danger()->persistent()->send();
+                            }
+                        }),
+                ];
+            })
             ->form(function (): array {
                 $plan  = $this->getEditingPlan();
                 $group = $plan?->sundayGroup;
@@ -387,100 +427,6 @@ class WorshipPlannerPage extends Page
                 $group = $plan?->sundayGroup;
                 if ($plan && $group) {
                     $this->saveDetails($plan, $group, $data);
-                }
-            });
-    }
-
-    protected function getFinalisePlanAction(): Action
-    {
-        return Action::make('finalisePlan')
-            ->label(function () {
-                $plan = $this->getFinalisingPlan();
-                return $plan
-                    ? 'Finalise ' . $plan->service_time . ' — ' . $plan->sundayGroup->service_date->format('j M Y')
-                    : 'Finalise Service';
-            })
-            ->modalHeading(function () {
-                $plan = $this->getFinalisingPlan();
-                return $plan
-                    ? 'Finalise ' . $plan->service_time . ' on ' . $plan->sundayGroup->service_date->format('j F Y') . '?'
-                    : 'Finalise Order of Service';
-            })
-            ->modalDescription('Confirmed items will be published to the order of service. This should only be done once the plan is complete.')
-            ->modalSubmitActionLabel('Yes, Finalise')
-            ->color('success')
-            ->requiresConfirmation()
-            ->action(function () {
-                $plan = $this->getFinalisingPlan();
-                if (! $plan) {
-                    Notification::make()->title('No plan selected')->danger()->send();
-                    return;
-                }
-
-                try {
-                    \DB::transaction(function () use ($plan) {
-                        $group = $plan->sundayGroup;
-
-                        $service = ChurchService::firstOrCreate(
-                            [
-                                'servicedate' => $group->service_date->format('Y-m-d'),
-                                'servicetime' => $plan->service_time,
-                            ],
-                            [
-                                'series_id' => $plan->effective_series?->id,
-                                'person_id' => $group->preacher_person_id,
-                                'reading'   => $plan->effective_bible_reading,
-                            ]
-                        );
-
-                        $service->update([
-                            'series_id' => $plan->effective_series?->id,
-                            'person_id' => $group->preacher_person_id,
-                            'reading'   => $plan->effective_bible_reading,
-                        ]);
-
-                        Setitem::where('service_id', $service->id)->delete();
-
-                        // Include suggested AND confirmed items — all planned items go into the order of service
-                        $plan->planItems()
-                            ->whereIn('status', ['suggested', 'confirmed'])
-                            ->with('itemable')
-                            ->orderBy('position')
-                            ->orderBy('created_at')
-                            ->get()
-                            ->each(function (WorshipPlanItem $item, int $index) use ($service) {
-                                Setitem::create([
-                                    'service_id'   => $service->id,
-                                    'content_type' => $item->isSong() ? 'song' : 'prayer',
-                                    'content_id'   => $item->itemable_id,
-                                    'sort_order'   => $item->position ?? $index + 1,
-                                ]);
-                            });
-
-                        $plan->update(['status' => 'published', 'published_at' => now()]);
-                    });
-
-                    $this->editingPlanId = null;
-
-                    Notification::make()
-                        ->title('Service finalised')
-                        ->body('Order of service has been published.')
-                        ->success()->send();
-
-                    // Redirect to refresh the page so cards reflect the new status
-                    $this->redirect(request()->header('Referer') ?? static::getUrl());
-
-                } catch (\Throwable $e) {
-                    \Log::error('WorshipPlannerPage: finalise failed', [
-                        'plan_id' => $plan->id,
-                        'message' => $e->getMessage(),
-                        'trace'   => $e->getTraceAsString(),
-                    ]);
-
-                    Notification::make()
-                        ->title('Finalise failed')
-                        ->body($e->getMessage())
-                        ->danger()->persistent()->send();
                 }
             });
     }
@@ -722,7 +668,10 @@ class WorshipPlannerPage extends Page
 
     public function removeItem(int $itemId): void
     {
-        WorshipPlanItem::findOrFail($itemId)->delete();
+        $item = WorshipPlanItem::findOrFail($itemId);
+        $this->editingPlanId = $item->worship_plan_id;
+        $item->delete();
+        $this->remountAction('editPlan');
     }
 
     public function confirmItem(int $itemId): void
@@ -731,11 +680,16 @@ class WorshipPlannerPage extends Page
         $maxPos = WorshipPlanItem::where('worship_plan_id', $item->worship_plan_id)
                     ->where('status', 'confirmed')->max('position') ?? 0;
         $item->confirm($maxPos + 1);
+        $this->editingPlanId = $item->worship_plan_id;
+        $this->remountAction('editPlan');
     }
 
     public function rejectItem(int $itemId): void
     {
-        WorshipPlanItem::findOrFail($itemId)->reject();
+        $item = WorshipPlanItem::findOrFail($itemId);
+        $this->editingPlanId = $item->worship_plan_id;
+        $item->reject();
+        $this->remountAction('editPlan');
     }
 
     // ── Search helpers (called from Alpine in songs/prayers panels) ──────────
