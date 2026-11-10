@@ -395,17 +395,17 @@ class WorshipPlannerPage extends Page
                                 ->schema([
                                     ViewField::make('songs_panel')
                                         ->view('filament.pages.worship-planner.songs-panel')
-                                        ->viewData(['plan' => $plan])
+                                        ->viewData(['planId' => $plan->id])
                                         ->label(''),
                                 ]),
 
-                            // ── PRAYERS TAB ──────────────────────────────
+                            // ── LITURGY TAB ──────────────────────────────
                             Tab::make('Liturgy')
                                 ->icon('heroicon-s-hand-raised')
                                 ->schema([
-                                    ViewField::make('prayers_panel')
-                                        ->view('filament.pages.worship-planner.prayers-panel')
-                                        ->viewData(['plan' => $plan])
+                                    ViewField::make('liturgy_panel')
+                                        ->view('filament.pages.worship-planner.liturgy-panel')
+                                        ->viewData(['planId' => $plan->id])
                                         ->label(''),
                                 ]),
 
@@ -538,8 +538,19 @@ class WorshipPlannerPage extends Page
 
     protected function getRosterSettingsForm(): array
     {
-        $serviceTimes = collect(setting('services') ?? []);
-        $current      = setting('worship_planner_roster') ?? [];
+        $services = setting('services');
+        $services = is_array($services) ? $services : [$services];
+
+        // Drop null/blank entries (e.g. a trailing empty item in the settings list)
+        $serviceTimes = collect($services)
+            ->filter(fn ($t) => is_string($t) && trim($t) !== '')
+            ->map(fn ($t) => trim($t))
+            ->values();
+
+        $current = setting('worship_planner_roster') ?? [];
+        if (is_string($current)) {
+            $current = json_decode($current, true) ?: [];
+        }
 
         return $serviceTimes->map(function (string $time) use ($current) {
             $saved     = $current[$time] ?? [];
@@ -610,109 +621,6 @@ class WorshipPlannerPage extends Page
         }
 
         Notification::make()->title('Details saved')->success()->send();
-    }
-
-    // ── Song / Prayer management (called from view panels via Livewire) ───────
-
-    public function addSong(int $songId): void
-    {
-        if (! $this->editingPlanId) return;
-
-        $exists = WorshipPlanItem::where('worship_plan_id', $this->editingPlanId)
-            ->where('itemable_type', Song::class)
-            ->where('itemable_id', $songId)
-            ->whereIn('status', ['suggested', 'confirmed'])
-            ->exists();
-
-        if ($exists) {
-            Notification::make()->title('Song already added')->warning()->send();
-            return;
-        }
-
-        WorshipPlanItem::create([
-            'worship_plan_id'      => $this->editingPlanId,
-            'itemable_type'        => Song::class,
-            'itemable_id'          => $songId,
-            'status'               => 'suggested',
-            'suggested_by_user_id' => auth()->id(),
-        ]);
-
-        Notification::make()->title('Song added')->success()->send();
-    }
-
-    public function addPrayer(int $prayerId): void
-    {
-        if (! $this->editingPlanId) return;
-
-        $exists = WorshipPlanItem::where('worship_plan_id', $this->editingPlanId)
-            ->where('itemable_type', Prayer::class)
-            ->where('itemable_id', $prayerId)
-            ->whereIn('status', ['suggested', 'confirmed'])
-            ->exists();
-
-        if ($exists) {
-            Notification::make()->title('Prayer already added')->warning()->send();
-            return;
-        }
-
-        WorshipPlanItem::create([
-            'worship_plan_id'      => $this->editingPlanId,
-            'itemable_type'        => Prayer::class,
-            'itemable_id'          => $prayerId,
-            'status'               => 'suggested',
-            'suggested_by_user_id' => auth()->id(),
-        ]);
-
-        Notification::make()->title('Prayer added')->success()->send();
-    }
-
-    public function removeItem(int $itemId): void
-    {
-        $item = WorshipPlanItem::findOrFail($itemId);
-        $this->editingPlanId = $item->worship_plan_id;
-        $item->delete();
-        $this->remountAction('editPlan');
-    }
-
-    public function confirmItem(int $itemId): void
-    {
-        $item   = WorshipPlanItem::findOrFail($itemId);
-        $maxPos = WorshipPlanItem::where('worship_plan_id', $item->worship_plan_id)
-                    ->where('status', 'confirmed')->max('position') ?? 0;
-        $item->confirm($maxPos + 1);
-        $this->editingPlanId = $item->worship_plan_id;
-        $this->remountAction('editPlan');
-    }
-
-    public function rejectItem(int $itemId): void
-    {
-        $item = WorshipPlanItem::findOrFail($itemId);
-        $this->editingPlanId = $item->worship_plan_id;
-        $item->reject();
-        $this->remountAction('editPlan');
-    }
-
-    // ── Search helpers (called from Alpine in songs/prayers panels) ──────────
-
-    public function searchSongs(string $query): array
-    {
-        if (strlen($query) < 2) return [];
-
-        return Song::where('title', 'like', "%{$query}%")
-            ->orWhere('author', 'like', "%{$query}%")
-            ->limit(10)
-            ->get(['id', 'title', 'author'])
-            ->toArray();
-    }
-
-    public function searchPrayers(string $query): array
-    {
-        if (strlen($query) < 2) return [];
-
-        return Prayer::where('title', 'like', "%{$query}%")
-            ->limit(10)
-            ->get(['id', 'title'])
-            ->toArray();
     }
 
     // ── Page metadata ─────────────────────────────────────────────────────────

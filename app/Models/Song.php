@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Traits\Taggable;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Song extends Model
 {
+    use Taggable;
+
     public $table = 'songs';
     protected $guarded = ['id'];
 

@@ -16,13 +16,13 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Hugomyb\FilamentMediaAction\Actions\MediaAction;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 use Joaopaulolndev\FilamentPdfViewer\Forms\Components\PdfViewerField;
 use App\Models\Service;
 use App\Models\Setitem;
 use App\Models\Song;
+use Illuminate\Database\Eloquent\Builder;
 
 class SongForm
 {
@@ -52,7 +52,9 @@ class SongForm
                             ->label('First line')
                             ->maxLength(255),
                         Select::make('tags')
+                            ->relationship('tags','name',modifyQueryUsing: fn (Builder $query) => $query->where('type','song'))
                             ->multiple()
+                            ->preload()
                             ->createOptionForm([
                                 Grid::make()
                                     ->columns(2)
@@ -165,7 +167,7 @@ class SongForm
                             ->disk('google'),
                     ]),
                     Tab::make('History')->schema([
-                        TextEntry::make('history')->label('')
+                        TextEntry::make('history')->hiddenLabel('true')
                         ->state(function (Song $record) {
                             if ($record){
                                 $allplays=Service::query()
@@ -177,10 +179,12 @@ class SongForm
                                     ->latest('servicedate')
                                     ->first();
                                 $history=array();
-                                // foreach ($allplays as $play){
-                                    $history[$allplays->servicetime][]=date('Y-m-d',strtotime($allplays->servicedate));
-                                //}
-                                ksort($history);
+                                if ($allplays){
+                                    foreach ($allplays as $play){
+                                        $history[$allplays->servicetime][]=date('Y-m-d',strtotime($allplays->servicedate));
+                                    }
+                                    ksort($history);
+                                }
                                 $period=date('Y-m-d',strtotime('4 months ago'));
                                 $histarray=array();
                                 foreach ($history as $stime=>$hist){
@@ -213,9 +217,13 @@ class SongForm
                                         }
                                     }
                                 }
-                                return new HtmlString($historytext);
+                                if (!$historytext){
+                                    return "No history record";
+                                } else {
+                                    return new HtmlString($historytext);
+                                }
                             } else {
-                                return " ";
+                                return "No history record";
                             }
                         })
                     ]),
