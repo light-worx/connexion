@@ -25,8 +25,10 @@ class IndividualForm
                     ->columns(2)
                     ->tabs([
                         Tab::make('Personal')
+                            ->dense()
                             ->schema([
                                 Select::make('title')
+                                    ->inlineLabel()
                                     ->selectablePlaceholder(false)
                                     ->options([
                                         '' => '',
@@ -37,8 +39,10 @@ class IndividualForm
                                         'Rev' => 'Rev',
                                     ]),
                                 TextInput::make('surname')
+                                    ->inlineLabel()
                                     ->required(),
                                 TextInput::make('firstname')
+                                    ->inlineLabel()
                                     ->label('First name')
                                     ->required(),
                                 Grid::make(1) // keeps it compact (single column block)
@@ -85,6 +89,7 @@ class IndividualForm
                                             ]),
                                     ]),
                                 Select::make('sex')
+                                    ->inlineLabel()
                                     ->selectablePlaceholder(false)
                                     ->options([
                                         '' => '',
@@ -95,6 +100,8 @@ class IndividualForm
                                     ->image(),
                             ]),
                         Tab::make('Contact')
+                            ->dense()
+                            ->inlineLabel()
                             ->schema([
                                 Grid::make(1)
                                     ->schema([
