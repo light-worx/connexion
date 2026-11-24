@@ -23,7 +23,9 @@ class TenantResource extends Resource
 
     protected static ?string $cluster = PropertyCluster::class;
 
-    protected static ?string $recordTitleAttribute = 'tenant';
+    protected static ?string $recordTitleAttribute = 'Venue user';
+
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function canAccess(): bool
     {

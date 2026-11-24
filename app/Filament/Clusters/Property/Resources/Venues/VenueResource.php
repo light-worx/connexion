@@ -8,12 +8,16 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use App\Filament\Clusters\Property\PropertyCluster;
+use App\Filament\Clusters\Property\Resources\Venues\Pages\ViewVenue;
 use App\Filament\Clusters\Property\Resources\Venues\Pages\CreateVenue;
 use App\Filament\Clusters\Property\Resources\Venues\Pages\EditVenue;
 use App\Filament\Clusters\Property\Resources\Venues\Pages\ListVenues;
 use App\Filament\Clusters\Property\Resources\Venues\Schemas\VenueForm;
 use App\Filament\Clusters\Property\Resources\Venues\Tables\VenuesTable;
+use App\Filament\Widgets\ChurchCalendarWidget;
+use App\Filament\Widgets\ChurchVenuesWidget;
 use App\Models\Venue;
+use Override;
 
 class VenueResource extends Resource
 {
@@ -52,6 +56,7 @@ class VenueResource extends Resource
         return [
             'index' => ListVenues::route('/'),
             'create' => CreateVenue::route('/create'),
+            'view' => ViewVenue::route('/{record}'),
             'edit' => EditVenue::route('/{record}/edit'),
         ];
     }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fdbfa66991bdc9dc1308fd5bdefdf7e2",
+    "content-hash": "a8bf32aebeefafd8ffb035659ef730fb",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -12301,8 +12301,8 @@
         "light-worx/filament-pwa": 20,
         "light-worx/filament-reports": 20,
         "light-worx/filament-settings": 20,
-        "light-worx/tasks-api-client": 20,
-        "light-worx/filament-tasks": 20
+        "light-worx/filament-tasks": 20,
+        "light-worx/tasks-api-client": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
