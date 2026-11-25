@@ -79,49 +79,30 @@ class ChurchCalendarWidget extends CalendarWidget
     public function getHeaderActions(): array
     {
         return [
-            Action::make('report')->label('Weekly report')
-                ->form([
-                    Select::make('header')->options([
-                        'hub' => 'Westville Community Hub',
-                        'church' => setting('general.church_name')
-                    ])
-                    ->default('hub'),
-                    DatePicker::make('reportdate')
-                        ->label('Starting date')
-                        ->format('Y-m-d')
-                        ->displayFormat('Y-m-d')
-                        ->weekStartsOnMonday()
-                        ->default(now())
-                        ->required(),
-                ])
-                ->icon('heroicon-o-newspaper')
-                ->action(function (array $data): void {
-                    redirect()->route('reports.venue', ['id' => $this->record, 'reportdate'=>$data['reportdate'], 'header'=>$data['header']]);
-                }),
-                CreateAction::make('createDiaryentry')->label('Add a booking')
-                    ->modelLabel('Booking')
-                    ->icon('heroicon-o-calendar-days')
-                    ->using(function (array $data) {
-                        // Make sure venue_id is always treated as an array
-                        $venues = (array) $data['venue_id'];
-                        foreach ($venues as $venueId) {
-                            // Loop over repeats
-                            for ($i = 0; $i <= $data['repeats']; $i++) {
-                                $newtime = date(
-                                    'Y-m-d H:i',
-                                    strtotime($data['diarydatetime'] . ' + ' . $i * $data['interval'] . ' days')
-                                );
-                                Diaryentry::create([
-                                    'diarisable_id'   => $data['diarisable_id'],
-                                    'diarisable_type' => $data['diarisable_type'],
-                                    'venue_id'        => $venueId,
-                                    'details'         => $data['details'],
-                                    'diarydatetime'   => $newtime,
-                                    'endtime'         => $data['endtime'],
-                                ]);
-                            }
+            CreateAction::make('createDiaryentry')->label('Add a booking')
+                ->modelLabel('Booking')
+                ->icon('heroicon-o-calendar-days')
+                ->using(function (array $data) {
+                    // Make sure venue_id is always treated as an array
+                    $venues = (array) $data['venue_id'];
+                    foreach ($venues as $venueId) {
+                        // Loop over repeats
+                        for ($i = 0; $i <= $data['repeats']; $i++) {
+                            $newtime = date(
+                                'Y-m-d H:i',
+                                strtotime($data['diarydatetime'] . ' + ' . $i * $data['interval'] . ' days')
+                            );
+                            Diaryentry::create([
+                                'diarisable_id'   => $data['diarisable_id'],
+                                'diarisable_type' => $data['diarisable_type'],
+                                'venue_id'        => $venueId,
+                                'details'         => $data['details'],
+                                'diarydatetime'   => $newtime,
+                                'endtime'         => $data['endtime'],
+                            ]);
                         }
-                    })
+                    }
+                })
         ];
     }
 

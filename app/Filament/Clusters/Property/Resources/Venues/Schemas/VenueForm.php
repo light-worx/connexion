@@ -6,7 +6,10 @@ use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
 
 class VenueForm
 {
@@ -15,6 +18,8 @@ class VenueForm
         return $schema
             ->components([
                 TextInput::make('venue')
+                    ->required()->live(onBlur: true)
+                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state)))
                     ->hiddenOn('view')
                     ->required(),
                 TextInput::make('slug')
@@ -32,19 +37,18 @@ class VenueForm
                     ->hiddenOn('view')
                     ->required()
                     ->numeric(),
+                Toggle::make('publish')
+                    ->hiddenOn('view')
+                    ->required(),
+                Toggle::make('resource')
+                    ->label('Show in resources view')
+                    ->hiddenOn('view')
+                    ->required(),
+                ColorPicker::make('colour')
+                    ->hiddenOn('view'),
                 FileUpload::make('image')
                     ->hiddenOn('view')
                     ->image(),
-                TextInput::make('publish')
-                    ->hiddenOn('view')
-                    ->required()
-                    ->numeric(),
-                TextInput::make('resource')
-                    ->hiddenOn('view')
-                    ->required()
-                    ->numeric(),
-                ColorPicker::make('colour')
-                    ->hiddenOn('view'),
             ]);
     }
 }

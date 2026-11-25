@@ -10,18 +10,16 @@ use App\Models\Tenant;
 use App\Models\Venue;
 use App\Models\Project;
 use Carbon\Carbon;
-use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Group;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Utilities\Get;
 use Guava\Calendar\Enums\CalendarViewType;
 use Guava\Calendar\Filament\CalendarWidget;
 use Guava\Calendar\ValueObjects\EventDropInfo;
@@ -74,25 +72,6 @@ class ChurchVenuesWidget extends CalendarWidget
     {
         return [
             Diaryentry::class => view('church::components.diaryentry'),
-        ];
-    }
-
-    public function getHeaderActions(): array
-    {
-        return [
-            Action::make('report')->label('Day report')
-                ->form([
-                    DatePicker::make('reportdate')
-                        ->label('Report date')
-                        ->format('Y-m-d')
-                        ->displayFormat('Y-m-d')
-                        ->weekStartsOnMonday()
-                        ->default(now())
-                        ->required(),
-                ])
-                ->action(function (array $data): void {
-                    redirect()->route('reports.allvenues', ['reportdate'=>$data['reportdate']]);
-                }),
         ];
     }
 
@@ -204,7 +183,7 @@ class ChurchVenuesWidget extends CalendarWidget
 
     public function getSchema(string $name): ?Schema
     {
-        return Schema::make()
+        return Schema::make($this)
             ->components([
                 Group::make([
                     Select::make('diarisable_id')
@@ -213,7 +192,7 @@ class ChurchVenuesWidget extends CalendarWidget
                             if ($get('diarisable_type')=="group") {
                                 return GroupModel::orderBy('groupname')->get()->pluck('groupname', 'id');
                             } elseif ($get('diarisable_type')=="course") {
-                                return Course::orderBy('course')->get()->pluck('event', 'id');
+                                //return Course::orderBy('course')->get()->pluck('event', 'id');
                             } elseif ($get('diarisable_type')=="event") {
                                 return Event::orderBy('event')->get()->pluck('event', 'id');
                             } elseif ($get('diarisable_type')=="project") {

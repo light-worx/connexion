@@ -1,10 +1,8 @@
 <?php
 
-use App\Http\Middleware\CheckLogin;
 use Illuminate\Support\Facades\Route;
 use Spatie\Honeypot\ProtectAgainstSpam;
 use App\Http\Controllers\AppController;
-use Livewire\Livewire;
 
 /*Livewire::setUpdateRoute(function ($handle) {
     return Route::post('/custom/livewire/update', $handle)->middleware(['web']);
@@ -91,5 +89,4 @@ Route::middleware(['web'])->controller('\App\Http\Controllers\WebController')->g
         Route::get('/{page}', 'page')->name('web.page');
     }
 });
-
 
