@@ -104,9 +104,9 @@ class Diaryentry extends Model implements Eventable
         return $this->belongsTo(Venue::class);
     }
 
-    public function agendaitems(): HasMany
+    /*public function agendaitems(): HasMany
     {
         return $this->hasMany(Agendaitem::class);
     }
-
+    */
 }
